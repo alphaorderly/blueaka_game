@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { GameObject, GridPosition, ProbabilityCell, PlacedObject, PlacementMode } from '../types/calculator';
 import { GRID_WIDTH, GRID_HEIGHT } from '../consts/gameData';
 import { calculateProbabilities } from '../utils/probabilityCalculator';
