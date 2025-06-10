@@ -36,10 +36,12 @@ const Calculator: React.FC = () => {
   const [placementMode, setPlacementMode] = useState<PlacementMode>('opened');
   const [selectedObjectIndex, setSelectedObjectIndex] = useState<number>(-1);
   const [placementOrientation, setPlacementOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
-  const [previewCells, setPreviewCells] = useState<GridPosition[]>([]);  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
+  const [previewCells, setPreviewCells] = useState<GridPosition[]>([]);  const [isSettingsOpen, setIsSettingsOpen] = useState(false);  const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
+  
+  const [objectColors, setObjectColors] = useState<{[key: string]: any}>({});
+
   // Generate truly random colors for placed objects
-  const generateRandomColor = () => {
+  const generateRandomColor = useCallback(() => {
     // Get existing hues to avoid duplicates
     const existingHues = Object.values(objectColors).map(color => {
       if (color && color.hue) return color.hue;
@@ -81,10 +83,7 @@ const Calculator: React.FC = () => {
       darkBg,
       darkText,
       className: `border border-current`
-    };
-  };
-  
-  const [objectColors, setObjectColors] = useState<{[key: string]: any}>({});
+    };  }, [objectColors]);
   
   useEffect(() => {
     const caseData = caseOptions.find(option => option.value === selectedCase);
@@ -96,7 +95,45 @@ const Calculator: React.FC = () => {
       setPreviewCells([]);
       setPlacementOrientation('horizontal');
     }
-  }, [selectedCase, caseOptions]);
+  }, [selectedCase, caseOptions]);  // Effect to regenerate colors for existing placed objects (e.g., after page refresh)
+  useEffect(() => {
+    const objectsNeedingColors = placedObjects.filter(obj => !objectColors[obj.id]);
+    
+    if (objectsNeedingColors.length > 0) {
+      const newColors: {[key: string]: any} = {};
+      
+      objectsNeedingColors.forEach(obj => {
+        const hue = Math.floor(Math.random() * 360);
+        const saturation = 65 + Math.floor(Math.random() * 25);
+        const lightness = 75 + Math.floor(Math.random() * 15);
+        const darkSaturation = 45 + Math.floor(Math.random() * 25);
+        const darkLightness = 25 + Math.floor(Math.random() * 20);
+        
+        newColors[obj.id] = {
+          hue,
+          lightBg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+          lightText: `hsl(${hue}, 70%, 20%)`,
+          darkBg: `hsl(${hue}, ${darkSaturation}%, ${darkLightness}%)`,
+          darkText: `hsl(${hue}, 60%, 85%)`,
+          className: `border border-current`
+        };
+      });
+      
+      setObjectColors(prev => ({ ...prev, ...newColors }));
+    }
+
+    // Clean up colors for objects that no longer exist
+    const currentObjectIds = new Set(placedObjects.map(obj => obj.id));
+    const obsoleteColorIds = Object.keys(objectColors).filter(id => !currentObjectIds.has(id));
+    
+    if (obsoleteColorIds.length > 0) {
+      setObjectColors(prev => {
+        const newColors = { ...prev };
+        obsoleteColorIds.forEach(id => delete newColors[id]);
+        return newColors;
+      });
+    }
+  }, [placedObjects.map(obj => obj.id).join(',')]); // Depend on the joined IDs to detect when objects change
 
 
   // Calculate remaining object counts based on placed objects (memoized)
