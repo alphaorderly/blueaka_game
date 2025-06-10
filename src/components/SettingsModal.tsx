@@ -134,39 +134,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       resetCaseOptions();
       showMessage('success', '회차 설정이 기본값으로 초기화되었습니다!');
     }
-  };
-  return (
+  };  return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto w-[95vw] sm:w-full">
         <DialogHeader>
-          <DialogTitle>설정</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">설정</DialogTitle>
+          <DialogDescription className="text-sm">
             회차 설정을 편집하고 데이터를 가져오기/내보내기할 수 있습니다.
           </DialogDescription>
-        </DialogHeader>        <div className="space-y-6">          {/* Import/Export Section */}
+        </DialogHeader>        <div className="space-y-4 sm:space-y-6">          {/* Import/Export Section */}
           <div className="space-y-3">
-            <Label className="text-lg font-semibold">케이스 설정 공유</Label>
+            <Label className="text-base sm:text-lg font-semibold">케이스 설정 공유</Label>
             
-            {/* All Options in One Row */}
-            <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
-              <Button onClick={handleExport} variant="outline" size="sm">
-                파일로 내보내기
+            {/* All Options in One Row */}            <div className="flex flex-wrap gap-2 p-2 sm:p-3 bg-muted rounded-lg">
+              <Button onClick={handleExport} variant="outline" size="sm" className="text-xs sm:text-sm">
+                📁 파일로 내보내기
               </Button>
-              <Button onClick={handleExportToClipboard} variant="outline" size="sm">
-                클립보드에 복사
+              <Button onClick={handleExportToClipboard} variant="outline" size="sm" className="text-xs sm:text-sm">
+                📋 클립보드에 복사
               </Button>
-              <Button onClick={handleImportClick} variant="outline" size="sm">
-                파일에서 가져오기
+              <Button onClick={handleImportClick} variant="outline" size="sm" className="text-xs sm:text-sm">
+                📂 파일에서 가져오기
               </Button>
               <Button 
                 onClick={() => setShowTextImport(!showTextImport)} 
                 variant="outline" 
                 size="sm"
+                className="text-xs sm:text-sm"
               >
-                텍스트로 가져오기
+                📝 텍스트로 가져오기
               </Button>
-                <Button onClick={handleResetCaseOptions} variant="destructive" size="sm">
-                  기본값으로 초기화
+                <Button onClick={handleResetCaseOptions} variant="destructive" size="sm" className="text-xs sm:text-sm">
+                  🔄 기본값으로 초기화
                 </Button>
               <input
                 ref={fileInputRef}
@@ -179,17 +178,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {/* Text Import Area */}
             {showTextImport && (
-              <div className="p-3 bg-muted rounded-lg space-y-2">
-                <Label className="text-sm font-medium">케이스 설정 JSON을 붙여넣으세요:</Label>
+              <div className="p-2 sm:p-3 bg-muted rounded-lg space-y-2">
+                <Label className="text-xs sm:text-sm font-medium">케이스 설정 JSON을 붙여넣으세요:</Label>
                 <Textarea
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
                   placeholder="케이스 설정 JSON을 여기에 붙여넣으세요..."
                   rows={4}
-                  className="font-mono text-sm"
+                  className="font-mono text-xs sm:text-sm"
                 />
-                <div className="flex gap-2">
-                  <Button onClick={handleTextImport} size="sm">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={handleTextImport} size="sm" className="text-xs sm:text-sm">
                     가져오기
                   </Button>
                   <Button 
@@ -199,6 +198,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     }} 
                     variant="outline" 
                     size="sm"
+                    className="text-xs sm:text-sm"
                   >
                     취소
                   </Button>
@@ -215,47 +215,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             }`}>
               {message.text}
             </div>
-          )}
-
-          {/* Cases Editor */}
+          )}          {/* Cases Editor */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <Label className="text-lg font-semibold">회차 설정</Label>
-              <Button onClick={addCase} size="sm">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <Label className="text-base sm:text-lg font-semibold">회차 설정</Label>
+              <Button onClick={addCase} size="sm" className="text-xs sm:text-sm w-full sm:w-auto">
                 회차 추가
               </Button>
             </div>
 
             {caseOptions.map((caseOption, caseIndex) => (
-              <div key={caseIndex} className="border rounded-lg p-4 space-y-3">                
+              <div key={caseIndex} className="border rounded-lg p-3 sm:p-4 space-y-3">                
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-end">
-                    <Label htmlFor={`case-label-${caseIndex}`} className="text-sm font-medium flex-1">회차 이름</Label>
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor={`case-label-${caseIndex}`} className="text-xs sm:text-sm font-medium">회차 이름</Label>
+                      <Input
+                        id={`case-label-${caseIndex}`}
+                        value={caseOption.label}
+                        onChange={(e) => updateCase(caseIndex, 'label', e.target.value)}
+                        className="mt-1 text-sm"
+                        placeholder="회차 이름을 입력하세요"
+                      />
+                    </div>
                     <Button
                       onClick={() => removeCase(caseIndex)}
                       size="sm"
                       variant="destructive"
-                      className="ml-4"
+                      className="text-xs sm:text-sm w-full sm:w-auto"
                     >
                       제거
                     </Button>
                   </div>
-                  <Input
-                    id={`case-label-${caseIndex}`}
-                    value={caseOption.label}
-                    onChange={(e) => updateCase(caseIndex, 'label', e.target.value)}
-                    className="mt-1"
-                    placeholder="회차 이름을 입력하세요"
-                  />
                 </div>
-                
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <Label className="text-sm font-medium">물건 목록</Label>
+                  <div className="mt-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <Label className="text-xs sm:text-sm font-medium">물건 목록</Label>
                     <Button
                       onClick={() => addObjectToCase(caseIndex)}
                       size="sm"
                       variant="outline"
+                      className="text-xs sm:text-sm w-full sm:w-auto"
                     >
                       + 물건 추가
                     </Button>
@@ -263,8 +263,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   <div className="space-y-3">
                     {caseOption.objects.map((obj, objIndex) => (
-                      <div key={objIndex} className="flex gap-3 items-end p-3 bg-muted rounded-lg">
-                        <div className="grid grid-cols-4 gap-3 flex-1">
+                      <div key={objIndex} className="flex flex-col sm:flex-row gap-3 items-start sm:items-end p-2 sm:p-3 bg-muted rounded-lg">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 flex-1 w-full">
                           <div>
                             <Label className="text-xs font-medium text-muted-foreground">너비</Label>
                             <Input
@@ -272,7 +272,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                               min="1"
                               value={obj.w}
                               onChange={(e) => updateObjectInCase(caseIndex, objIndex, 'w', parseInt(e.target.value) || 1)}
-                              className="h-9 mt-1"
+                              className="h-8 sm:h-9 mt-1 text-sm"
                             />
                           </div>
                           <div>
@@ -282,7 +282,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                               min="1"
                               value={obj.h}
                               onChange={(e) => updateObjectInCase(caseIndex, objIndex, 'h', parseInt(e.target.value) || 1)}
-                              className="h-9 mt-1"
+                              className="h-8 sm:h-9 mt-1 text-sm"
                             />
                           </div>
                           <div>
@@ -292,17 +292,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                               min="0"
                               value={obj.count}
                               onChange={(e) => updateObjectInCase(caseIndex, objIndex, 'count', parseInt(e.target.value) || 0)}
-                              className="h-9 mt-1"
+                              className="h-8 sm:h-9 mt-1 text-sm"
                             />
                           </div>
                           <div>
                             <Label className="text-xs font-medium text-muted-foreground">총 개수</Label>
-                            <Input
-                              type="number"
+                            <Input                              type="number"
                               min="1"
                               value={obj.totalCount}
                               onChange={(e) => updateObjectInCase(caseIndex, objIndex, 'totalCount', parseInt(e.target.value) || 1)}
-                              className="h-9 mt-1"
+                              className="h-8 sm:h-9 mt-1 text-sm"
                             />
                           </div>
                         </div>
@@ -310,7 +309,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                           onClick={() => removeObjectFromCase(caseIndex, objIndex)}
                           size="sm"
                           variant="destructive"
-                          className="h-9 px-3"
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm w-full sm:w-auto mt-2 sm:mt-0"
                         >
                           삭제
                         </Button>
@@ -323,8 +322,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="pt-4">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto text-sm">
             닫기
           </Button>
         </DialogFooter>
