@@ -477,9 +477,10 @@ const Calculator: React.FC = () => {
                 `물건 ${index + 1}: ${obj.w}x${obj.h} ${obj.totalCount}개`
               ).join(', ')}
             </div>
-          </div>          <div className="flex flex-col gap-4 sm:gap-6">
+          </div>
+          <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
             {/* Main content - object placement and game grid */}
-            <div>
+            <div className="space-y-6">
               <div className="mb-4 sm:mb-6">
                 <Label className="text-base sm:text-lg font-semibold mb-2 block">
                   찾은 물건 배치
@@ -631,12 +632,13 @@ const Calculator: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>            {/* Probability Results - moved below the game grid, title removed */}
-            <div>
+            {/* Probability Results */}
+            <div className="space-y-6 lg:sticky lg:top-24">
               <div className="overflow-x-auto custom-scrollbar prevent-horizontal-scroll">
-                <div className="grid grid-cols-9 gap-0.5 w-fit min-w-[270px] xs:min-w-[240px] mx-auto sm:mx-0">
+                <div className="grid grid-cols-9 gap-0.5 w-fit min-w-[270px] xs:min-w-[240px] mx-auto">
                   {Array.from({ length: GRID_HEIGHT }, (_, y) =>
-                    Array.from({ length: GRID_WIDTH }, (_, x) => (                      <div
+                    Array.from({ length: GRID_WIDTH }, (_, x) => (
+                      <div
                         key={`result-${x}-${y}`}
                         className={getCellClassName(x, y, true)}
                         style={getCellStyles(x, y)}
