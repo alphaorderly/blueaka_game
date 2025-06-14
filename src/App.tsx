@@ -1,12 +1,7 @@
 import Calculator from './components/Calculator';
-import Layout from './components/Layout';
 
 const App = () => {
-    return (
-        <Layout>
-            <Calculator />
-        </Layout>
-    );
+    return <Calculator />;
 };
 
 export default App;
