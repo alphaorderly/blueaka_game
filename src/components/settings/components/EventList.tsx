@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Label } from '../../ui/label';
 import {
     Select,
     SelectContent,
@@ -7,7 +6,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '../../ui/select';
-import { EventData, CaseOption } from '../../../types/calculator';
+import { EventData, GameObject } from '../../../types/calculator';
 import { EventListItem } from './EventListItem';
 
 interface EventListProps {
@@ -18,28 +17,25 @@ interface EventListProps {
     onExportEvent: (eventId: string) => void;
     onExportToClipboard: (eventId: string) => void;
     onUpdateEvent: (eventId: string, updates: Partial<EventData>) => void;
-    onShowMessage: (type: 'success' | 'error', text: string) => void;
     // Case management props
     onAddCase: (eventId: string) => void;
-    onRemoveCase: (eventId: string, caseIndex: number) => void;
+    onRemoveCase: (eventId: string, caseId: string) => void;
     onUpdateCase: (
         eventId: string,
-        caseIndex: number,
-        field: keyof CaseOption,
-        value: string
+        caseId: string,
+        updates: Partial<{ label: string; objects: GameObject[] }>
     ) => void;
-    onAddObject: (eventId: string, caseIndex: number) => void;
+    onAddObject: (eventId: string, caseId: string) => void;
     onRemoveObject: (
         eventId: string,
-        caseIndex: number,
+        caseId: string,
         objectIndex: number
     ) => void;
     onUpdateObject: (
         eventId: string,
-        caseIndex: number,
+        caseId: string,
         objectIndex: number,
-        field: string,
-        value: number
+        updates: Partial<{ w: number; h: number; totalCount: number }>
     ) => void;
 }
 
@@ -51,7 +47,6 @@ export const EventList: React.FC<EventListProps> = ({
     onExportEvent,
     onExportToClipboard,
     onUpdateEvent,
-    onShowMessage,
     onAddCase,
     onRemoveCase,
     onUpdateCase,
@@ -87,30 +82,32 @@ export const EventList: React.FC<EventListProps> = ({
 
     if (customEvents.length === 0) {
         return (
-            <div className="text-muted-foreground py-8 text-center">
-                <p>아직 커스텀 이벤트가 없습니다.</p>
-                <p className="text-sm">
-                    위에서 새 이벤트를 만들거나 기존 이벤트를 가져와보세요.
+            <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
+                <p className="font-medium text-gray-500">
+                    아직 커스텀 이벤트가 없습니다
+                </p>
+                <p className="mt-1 text-sm text-gray-400">
+                    위에서 새 이벤트를 만들거나 기존 이벤트를 가져와보세요
                 </p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-3">
-            <div className="flex flex-col gap-3">
-                <Label className="text-base font-semibold">
-                    내 커스텀 이벤트 ({customEvents.length}개)
-                </Label>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                <h2 className="text-lg font-semibold text-gray-900">
+                    커스텀 이벤트 관리
+                </h2>
                 <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">
+                    <span className="text-sm text-gray-500">
                         편집할 이벤트:
-                    </Label>
+                    </span>
                     <Select
                         value={selectedCustomEventId}
                         onValueChange={setSelectedCustomEventId}
                     >
-                        <SelectTrigger className="w-[250px]">
+                        <SelectTrigger className="w-[200px] border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                             <SelectValue placeholder="이벤트 선택" />
                         </SelectTrigger>
                         <SelectContent>
@@ -138,10 +135,9 @@ export const EventList: React.FC<EventListProps> = ({
                             selectedEvent={selectedEvent}
                             onSelectEvent={onSelectEvent}
                             onDeleteEvent={handleDeleteEvent}
-                            onExportEvent={onExportEvent}
+                            onExportToFile={onExportEvent}
                             onExportToClipboard={onExportToClipboard}
                             onUpdateEvent={onUpdateEvent}
-                            onShowMessage={onShowMessage}
                             onAddCase={onAddCase}
                             onRemoveCase={onRemoveCase}
                             onUpdateCase={onUpdateCase}

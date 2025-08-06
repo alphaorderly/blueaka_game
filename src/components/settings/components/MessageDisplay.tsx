@@ -12,10 +12,10 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({ message }) => {
 
     return (
         <div
-            className={`rounded border p-3 text-sm ${
+            className={`rounded-lg border p-3 text-sm font-medium ${
                 message.type === 'success'
-                    ? 'border-green-200 bg-green-50 text-green-800'
-                    : 'border-red-200 bg-red-50 text-red-800'
+                    ? 'border-green-200 bg-green-50 text-green-700'
+                    : 'border-red-200 bg-red-50 text-red-700'
             }`}
         >
             {message.text}

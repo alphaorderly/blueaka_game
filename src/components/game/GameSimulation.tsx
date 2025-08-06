@@ -8,7 +8,7 @@ import {
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { RefreshCw, Eye, EyeOff, PartyPopper } from 'lucide-react';
 
 interface GameSimulationProps {
     selectedEvent: EventData;
@@ -328,9 +328,12 @@ export const GameSimulation: React.FC<GameSimulationProps> = ({
             {gameState.isComplete && (
                 <Card className="border-green-200 bg-green-50 p-4">
                     <div className="text-center">
-                        <h3 className="text-lg font-bold text-green-800">
-                            🎉 완료!
-                        </h3>
+                        <div className="flex items-center justify-center gap-2">
+                            <PartyPopper className="h-5 w-5 text-green-600" />
+                            <h3 className="text-lg font-bold text-green-800">
+                                완료!
+                            </h3>
+                        </div>
                         <p className="text-sm text-green-700">
                             {gameState.moves}번 클릭으로 모든 오브젝트를
                             찾았습니다

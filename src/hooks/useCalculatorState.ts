@@ -412,12 +412,12 @@ export const useCalculatorState = () => {
     );
 
     const removeCaseFromCustomEvent = useCallback(
-        (eventId: string, caseIndex: number) => {
+        (eventId: string, caseId: string) => {
             const event = state.customEvents.find((e) => e.id === eventId);
             if (!event) return;
 
             const newCaseOptions = event.caseOptions.filter(
-                (_, i) => i !== caseIndex
+                (caseOption) => caseOption.value !== caseId
             );
 
             const updatedEvent = {
@@ -433,22 +433,27 @@ export const useCalculatorState = () => {
     const updateCaseInCustomEvent = useCallback(
         (
             eventId: string,
-            caseIndex: number,
-            field: keyof CaseOption,
-            value: string
+            caseId: string,
+            updates: Partial<{ label: string; objects: GameObject[] }>
         ) => {
             const event = state.customEvents.find((e) => e.id === eventId);
             if (!event) return;
 
-            const updated = [...event.caseOptions];
-            if (field === 'label') {
-                updated[caseIndex][field] = value;
-                updated[caseIndex].value = `case${caseIndex + 1}`;
-            }
+            const caseOptions = [...event.caseOptions];
+            const caseIndex = caseOptions.findIndex(
+                (caseOption) => caseOption.value === caseId
+            );
+
+            if (caseIndex === -1) return;
+
+            caseOptions[caseIndex] = {
+                ...caseOptions[caseIndex],
+                ...updates,
+            };
 
             const updatedEvent = {
                 ...event,
-                caseOptions: updated,
+                caseOptions,
             };
 
             updateCustomEvent(eventId, updatedEvent);
@@ -457,12 +462,18 @@ export const useCalculatorState = () => {
     );
 
     const addObjectToCustomEventCase = useCallback(
-        (eventId: string, caseIndex: number) => {
+        (eventId: string, caseId: string) => {
             const event = state.customEvents.find((e) => e.id === eventId);
             if (!event) return;
 
-            const updated = [...event.caseOptions];
-            updated[caseIndex].objects.push({
+            const caseOptions = [...event.caseOptions];
+            const caseIndex = caseOptions.findIndex(
+                (caseOption) => caseOption.value === caseId
+            );
+
+            if (caseIndex === -1) return;
+
+            caseOptions[caseIndex].objects.push({
                 w: 2,
                 h: 1,
                 count: 1,
@@ -471,7 +482,7 @@ export const useCalculatorState = () => {
 
             const updatedEvent = {
                 ...event,
-                caseOptions: updated,
+                caseOptions,
             };
 
             updateCustomEvent(eventId, updatedEvent);
@@ -480,18 +491,24 @@ export const useCalculatorState = () => {
     );
 
     const removeObjectFromCustomEventCase = useCallback(
-        (eventId: string, caseIndex: number, objectIndex: number) => {
+        (eventId: string, caseId: string, objectIndex: number) => {
             const event = state.customEvents.find((e) => e.id === eventId);
             if (!event) return;
 
-            const updated = [...event.caseOptions];
-            updated[caseIndex].objects = updated[caseIndex].objects.filter(
-                (_, i) => i !== objectIndex
+            const caseOptions = [...event.caseOptions];
+            const caseIndex = caseOptions.findIndex(
+                (caseOption) => caseOption.value === caseId
             );
+
+            if (caseIndex === -1) return;
+
+            caseOptions[caseIndex].objects = caseOptions[
+                caseIndex
+            ].objects.filter((_, i) => i !== objectIndex);
 
             const updatedEvent = {
                 ...event,
-                caseOptions: updated,
+                caseOptions,
             };
 
             updateCustomEvent(eventId, updatedEvent);
@@ -502,25 +519,34 @@ export const useCalculatorState = () => {
     const updateObjectInCustomEventCase = useCallback(
         (
             eventId: string,
-            caseIndex: number,
+            caseId: string,
             objectIndex: number,
-            field: string,
-            value: number
+            updates: Partial<{ w: number; h: number; totalCount: number }>
         ) => {
             const event = state.customEvents.find((e) => e.id === eventId);
             if (!event) return;
 
-            const updated = [...event.caseOptions];
-            const objectToUpdate = updated[caseIndex].objects[objectIndex];
-            (objectToUpdate as unknown as Record<string, unknown>)[field] =
-                value;
-            if (field === 'totalCount') {
-                updated[caseIndex].objects[objectIndex].count = value;
+            const caseOptions = [...event.caseOptions];
+            const caseIndex = caseOptions.findIndex(
+                (caseOption) => caseOption.value === caseId
+            );
+
+            if (caseIndex === -1) return;
+
+            const objectToUpdate = {
+                ...caseOptions[caseIndex].objects[objectIndex],
+            };
+            Object.assign(objectToUpdate, updates);
+
+            if (updates.totalCount !== undefined) {
+                objectToUpdate.count = updates.totalCount;
             }
+
+            caseOptions[caseIndex].objects[objectIndex] = objectToUpdate;
 
             const updatedEvent = {
                 ...event,
-                caseOptions: updated,
+                caseOptions,
             };
 
             updateCustomEvent(eventId, updatedEvent);

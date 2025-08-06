@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardHeader } from '../../ui/card';
+import { Card, CardContent } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
 import { EventData, GameObject } from '../../../types/calculator';
-import {
-    Download,
-    Copy,
-    Edit3,
-    Trash2,
-    ChevronDown,
-    ChevronRight,
-} from 'lucide-react';
+import { Download, Copy, Trash2, Plus, X } from 'lucide-react';
 
 interface EventListItemProps {
     event: EventData;
@@ -44,20 +39,19 @@ interface EventListItemProps {
 export const EventListItem: React.FC<EventListItemProps> = ({
     event,
     selectedEvent,
-    onSelectEvent,
     onUpdateEvent,
     onDeleteEvent,
     onExportToFile,
     onExportToClipboard,
     onAddCase,
     onRemoveCase,
+    onUpdateCase,
     onAddObject,
     onRemoveObject,
+    onUpdateObject,
 }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editName, setEditName] = useState(event.name);
-    const [editDescription, setEditDescription] = useState(
+    const [eventName, setEventName] = useState(event.name);
+    const [eventDescription, setEventDescription] = useState(
         event.description || ''
     );
 
@@ -73,270 +67,202 @@ export const EventListItem: React.FC<EventListItemProps> = ({
         }
     };
 
-    const handleUpdateEvent = () => {
+    const handleUpdateEventName = (newName: string) => {
+        setEventName(newName);
+        if (newName.trim()) {
+            onUpdateEvent(event.id, { name: newName.trim() });
+        }
+    };
+
+    const handleUpdateEventDescription = (newDescription: string) => {
+        setEventDescription(newDescription);
         onUpdateEvent(event.id, {
-            name: editName.trim(),
-            description: editDescription.trim() || undefined,
+            description: newDescription.trim() || undefined,
         });
-        setIsEditing(false);
     };
 
-    const handleCancelEdit = () => {
-        setEditName(event.name);
-        setEditDescription(event.description || '');
-        setIsEditing(false);
+    const handleCaseLabelChange = (caseId: string, newLabel: string) => {
+        onUpdateCase(event.id, caseId, { label: newLabel });
     };
 
-    const handleExportToFile = () => {
-        onExportToFile(event.id);
-    };
-
-    const handleExportToClipboard = () => {
-        onExportToClipboard(event.id);
+    const handleObjectChange = (
+        caseId: string,
+        objectIndex: number,
+        field: 'w' | 'h' | 'totalCount',
+        value: number
+    ) => {
+        onUpdateObject(event.id, caseId, objectIndex, {
+            [field]: Math.max(1, value || 1),
+        });
     };
 
     return (
-        <Card
-            className={`transition-all duration-200 ${
-                isSelected
-                    ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
-                    : 'border-border/40 hover:bg-card/80'
-            }`}
-        >
-            <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                    {/* Selection Radio */}
-                    <input
-                        type="radio"
-                        id={`event-${event.id}`}
-                        name="selectedEvent"
-                        checked={isSelected}
-                        onChange={() => onSelectEvent(event.id)}
-                        className="text-primary focus:ring-primary h-4 w-4"
-                    />
-
-                    {/* Expand/Collapse Button */}
+        <div className="space-y-4">
+            {/* Event Header - Action Buttons */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                     <Button
+                        onClick={() => onExportToFile(event.id)}
                         variant="ghost"
                         size="sm"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="h-6 w-6 p-0"
+                        className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        title="파일로 내보내기"
                     >
-                        {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
-                        ) : (
-                            <ChevronRight className="h-4 w-4" />
-                        )}
+                        <Download className="h-4 w-4" />
                     </Button>
-
-                    {/* Event Info */}
-                    <div className="min-w-0 flex-1">
-                        {isEditing ? (
-                            <div className="space-y-2">
-                                <input
-                                    type="text"
-                                    value={editName}
-                                    onChange={(e) =>
-                                        setEditName(e.target.value)
-                                    }
-                                    className="focus:ring-primary w-full rounded border px-2 py-1 text-sm focus:ring-2 focus:outline-none"
-                                    placeholder="이벤트 이름"
-                                />
-                                <input
-                                    type="text"
-                                    value={editDescription}
-                                    onChange={(e) =>
-                                        setEditDescription(e.target.value)
-                                    }
-                                    className="focus:ring-primary w-full rounded border px-2 py-1 text-xs focus:ring-2 focus:outline-none"
-                                    placeholder="이벤트 설명 (선택사항)"
-                                />
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={handleUpdateEvent}
-                                        size="sm"
-                                        variant="default"
-                                        disabled={!editName.trim()}
-                                    >
-                                        저장
-                                    </Button>
-                                    <Button
-                                        onClick={handleCancelEdit}
-                                        size="sm"
-                                        variant="outline"
-                                    >
-                                        취소
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <label
-                                htmlFor={`event-${event.id}`}
-                                className="block cursor-pointer"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="text-foreground truncate font-medium">
-                                        {event.name}
-                                    </span>
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                    >
-                                        {event.caseOptions.length}개 케이스
-                                    </Badge>
-                                </div>
-                                {event.description && (
-                                    <p className="text-muted-foreground mt-1 truncate text-xs">
-                                        {event.description}
-                                    </p>
-                                )}
-                            </label>
-                        )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1">
-                        {!isEditing && (
-                            <>
-                                <Button
-                                    onClick={() => setIsEditing(true)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    title="이벤트 편집"
-                                >
-                                    <Edit3 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                    onClick={handleExportToFile}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    title="파일로 내보내기"
-                                >
-                                    <Download className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                    onClick={handleExportToClipboard}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    title="클립보드에 복사"
-                                >
-                                    <Copy className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                    onClick={handleDeleteEvent}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                                    title="이벤트 삭제"
-                                >
-                                    <Trash2 className="h-3 w-3" />
-                                </Button>
-                            </>
-                        )}
-                    </div>
+                    <Button
+                        onClick={() => onExportToClipboard(event.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        title="클립보드에 복사"
+                    >
+                        <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        onClick={handleDeleteEvent}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="이벤트 삭제"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                 </div>
-            </CardHeader>
 
-            {/* Expanded Content */}
-            {isExpanded && (
-                <CardContent className="pt-0">
-                    <div className="space-y-3 border-t pt-3">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-foreground text-sm font-medium">
-                                케이스 목록
-                            </h4>
-                            <Button
-                                onClick={() => onAddCase(event.id)}
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs"
+                <div className="flex items-center gap-3">
+                    <Badge
+                        variant="outline"
+                        className="border-gray-300 bg-gray-100 text-xs text-gray-600"
+                    >
+                        {event.caseOptions.length}개 케이스
+                    </Badge>
+                </div>
+            </div>
+
+            {/* Event Info - Wide Layout without Border */}
+            <div
+                className={`space-y-4 rounded-lg p-4 transition-colors ${
+                    isSelected ? 'bg-gray-50' : 'bg-gray-25 hover:bg-gray-50'
+                }`}
+            >
+                <div className="space-y-2">
+                    <Label
+                        htmlFor={`name-${event.id}`}
+                        className="text-sm font-medium text-gray-700"
+                    >
+                        이벤트 이름
+                    </Label>
+                    <Input
+                        id={`name-${event.id}`}
+                        value={eventName}
+                        onChange={(e) => setEventName(e.target.value)}
+                        onBlur={(e) => handleUpdateEventName(e.target.value)}
+                        className="border-0 bg-white text-lg font-medium shadow-sm focus:ring-2 focus:ring-gray-400"
+                        placeholder="이벤트 이름을 입력하세요"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label
+                        htmlFor={`desc-${event.id}`}
+                        className="text-sm font-medium text-gray-700"
+                    >
+                        설명 (선택사항)
+                    </Label>
+                    <Input
+                        id={`desc-${event.id}`}
+                        value={eventDescription}
+                        onChange={(e) => setEventDescription(e.target.value)}
+                        onBlur={(e) =>
+                            handleUpdateEventDescription(e.target.value)
+                        }
+                        className="border-0 bg-white text-sm shadow-sm focus:ring-2 focus:ring-gray-400"
+                        placeholder="이벤트에 대한 설명을 입력하세요"
+                    />
+                </div>
+            </div>
+
+            {/* Cases List */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-gray-900">
+                        케이스 목록
+                    </h3>
+                    <Button
+                        onClick={() => onAddCase(event.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                        <Plus className="mr-1 h-4 w-4" />
+                        케이스 추가
+                    </Button>
+                </div>
+
+                {event.caseOptions.length === 0 ? (
+                    <Card className="border-dashed border-gray-300">
+                        <CardContent className="pt-6 pb-6 text-center">
+                            <p className="text-sm text-gray-500">
+                                케이스가 없습니다
+                            </p>
+                            <p className="mt-1 text-xs text-gray-400">
+                                위 버튼을 클릭해서 케이스를 추가해보세요
+                            </p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-3">
+                        {event.caseOptions.map((caseOption, caseIndex) => (
+                            <Card
+                                key={caseOption.value}
+                                className="border-gray-200 py-2"
                             >
-                                케이스 추가
-                            </Button>
-                        </div>
-
-                        {event.caseOptions.length === 0 ? (
-                            <div className="py-4 text-center">
-                                <p className="text-muted-foreground text-sm">
-                                    케이스가 없습니다.
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                    케이스를 추가해보세요.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {event.caseOptions.map((caseOption, index) => (
-                                    <div
-                                        key={caseOption.value}
-                                        className="bg-card/30 rounded-lg border p-3"
-                                    >
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Badge
-                                                    variant="outline"
-                                                    className="text-xs"
-                                                >
-                                                    케이스 {index + 1}
-                                                </Badge>
-                                                <span className="text-sm font-medium">
-                                                    {caseOption.label}
-                                                </span>
-                                            </div>
-                                            <Button
-                                                onClick={() =>
-                                                    onRemoveCase(
-                                                        event.id,
-                                                        caseOption.value
+                                <CardContent className="pt-4 pb-4">
+                                    {/* Case Header */}
+                                    <div className="mb-4 flex items-center gap-3">
+                                        <Badge
+                                            variant="secondary"
+                                            className="border-gray-300 bg-gray-100 text-gray-700"
+                                        >
+                                            케이스 {caseIndex + 1}
+                                        </Badge>
+                                        <div className="flex-1">
+                                            <Input
+                                                value={caseOption.label}
+                                                onChange={(e) =>
+                                                    handleCaseLabelChange(
+                                                        caseOption.value,
+                                                        e.target.value
                                                     )
                                                 }
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-destructive hover:bg-destructive/10 h-6 w-6 p-0"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
+                                                className="border-gray-300 font-medium focus:border-gray-500 focus:ring-gray-500"
+                                                placeholder="케이스 이름"
+                                            />
                                         </div>
+                                        <Button
+                                            onClick={() =>
+                                                onRemoveCase(
+                                                    event.id,
+                                                    caseOption.value
+                                                )
+                                            }
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                            title="케이스 삭제"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
 
-                                        <div className="space-y-2">
-                                            <div className="text-muted-foreground text-xs">
-                                                오브젝트:{' '}
-                                                {caseOption.objects.length}개
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-                                                {caseOption.objects.map(
-                                                    (obj, objIndex) => (
-                                                        <div
-                                                            key={objIndex}
-                                                            className="bg-background/50 flex items-center justify-between rounded px-2 py-1 text-xs"
-                                                        >
-                                                            <span>
-                                                                {obj.w}×{obj.h}{' '}
-                                                                (
-                                                                {obj.totalCount}
-                                                                개)
-                                                            </span>
-                                                            <Button
-                                                                onClick={() =>
-                                                                    onRemoveObject(
-                                                                        event.id,
-                                                                        caseOption.value,
-                                                                        objIndex
-                                                                    )
-                                                                }
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-destructive hover:bg-destructive/10 ml-1 h-4 w-4 p-0"
-                                                            >
-                                                                <Trash2 className="h-2 w-2" />
-                                                            </Button>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
+                                    {/* Objects */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-sm font-medium text-gray-700">
+                                                오브젝트 (
+                                                {caseOption.objects.length}개)
+                                            </Label>
                                             <Button
                                                 onClick={() =>
                                                     onAddObject(
@@ -346,18 +272,166 @@ export const EventListItem: React.FC<EventListItemProps> = ({
                                                 }
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-6 w-full text-xs"
+                                                className="h-7 border-gray-300 text-xs text-gray-600 hover:bg-gray-50"
                                             >
+                                                <Plus className="mr-1 h-3 w-3" />
                                                 오브젝트 추가
                                             </Button>
                                         </div>
+
+                                        {caseOption.objects.length === 0 ? (
+                                            <div className="rounded-lg border-2 border-dashed border-gray-200 p-4 text-center">
+                                                <p className="text-sm text-gray-400">
+                                                    오브젝트가 없습니다
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {caseOption.objects.map(
+                                                    (obj, objIndex) => (
+                                                        <div
+                                                            key={objIndex}
+                                                            className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="border-gray-300 bg-white text-xs text-gray-600"
+                                                                >
+                                                                    #
+                                                                    {objIndex +
+                                                                        1}
+                                                                </Badge>
+
+                                                                <div className="grid flex-1 grid-cols-3 gap-3">
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-xs text-gray-600">
+                                                                            너비
+                                                                        </Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            value={
+                                                                                obj.w
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) =>
+                                                                                handleObjectChange(
+                                                                                    caseOption.value,
+                                                                                    objIndex,
+                                                                                    'w',
+                                                                                    parseInt(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    )
+                                                                                )
+                                                                            }
+                                                                            className="h-8 border-gray-300 text-center text-sm focus:border-gray-500 focus:ring-gray-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-xs text-gray-600">
+                                                                            높이
+                                                                        </Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            value={
+                                                                                obj.h
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) =>
+                                                                                handleObjectChange(
+                                                                                    caseOption.value,
+                                                                                    objIndex,
+                                                                                    'h',
+                                                                                    parseInt(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    )
+                                                                                )
+                                                                            }
+                                                                            className="h-8 border-gray-300 text-center text-sm focus:border-gray-500 focus:ring-gray-500"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <Label className="text-xs text-gray-600">
+                                                                            총
+                                                                            개수
+                                                                        </Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            value={
+                                                                                obj.totalCount
+                                                                            }
+                                                                            onChange={(
+                                                                                e
+                                                                            ) =>
+                                                                                handleObjectChange(
+                                                                                    caseOption.value,
+                                                                                    objIndex,
+                                                                                    'totalCount',
+                                                                                    parseInt(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    )
+                                                                                )
+                                                                            }
+                                                                            className="h-8 border-gray-300 text-center text-sm focus:border-gray-500 focus:ring-gray-500"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                <Button
+                                                                    onClick={() =>
+                                                                        onRemoveObject(
+                                                                            event.id,
+                                                                            caseOption.value,
+                                                                            objIndex
+                                                                        )
+                                                                    }
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-100 hover:text-red-700"
+                                                                    title="오브젝트 삭제"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+
+                                                            {/* Object Summary */}
+                                                            <div className="mt-2 border-t border-gray-200 pt-2">
+                                                                <p className="text-xs text-gray-500">
+                                                                    크기:{' '}
+                                                                    {obj.w} ×{' '}
+                                                                    {obj.h} ={' '}
+                                                                    {obj.w *
+                                                                        obj.h}
+                                                                    칸 | 총{' '}
+                                                                    {
+                                                                        obj.totalCount
+                                                                    }
+                                                                    개
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
-                </CardContent>
-            )}
-        </Card>
+                )}
+            </div>
+        </div>
     );
 };

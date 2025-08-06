@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { EventData, CaseOption } from '../../types/calculator';
+import { EventData, GameObject } from '../../types/calculator';
 import {
     Dialog,
     DialogContent,
@@ -34,25 +34,23 @@ interface SettingsModalProps {
     downloadFile: (content: string, filename: string) => void;
     // Case/Object Management for Custom Events
     addCaseToCustomEvent: (eventId: string) => void;
-    removeCaseFromCustomEvent: (eventId: string, caseIndex: number) => void;
+    removeCaseFromCustomEvent: (eventId: string, caseId: string) => void;
     updateCaseInCustomEvent: (
         eventId: string,
-        caseIndex: number,
-        field: keyof CaseOption,
-        value: string
+        caseId: string,
+        updates: Partial<{ label: string; objects: GameObject[] }>
     ) => void;
-    addObjectToCustomEventCase: (eventId: string, caseIndex: number) => void;
+    addObjectToCustomEventCase: (eventId: string, caseId: string) => void;
     removeObjectFromCustomEventCase: (
         eventId: string,
-        caseIndex: number,
+        caseId: string,
         objectIndex: number
     ) => void;
     updateObjectInCustomEventCase: (
         eventId: string,
-        caseIndex: number,
+        caseId: string,
         objectIndex: number,
-        field: string,
-        value: number
+        updates: Partial<{ w: number; h: number; totalCount: number }>
     ) => void;
 }
 
@@ -133,55 +131,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-h-[85vh] w-[95vw] max-w-5xl overflow-y-auto sm:w-full">
-                <DialogHeader>
-                    <DialogTitle className="text-lg sm:text-xl">
+            <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
+                <DialogHeader className="border-b border-gray-200 pb-4">
+                    <DialogTitle className="text-xl font-semibold text-gray-900">
                         커스텀 이벤트 관리
                     </DialogTitle>
-                    <DialogDescription className="text-sm">
-                        커스텀 이벤트를 생성, 편집, 공유할 수 있습니다. 기본
-                        이벤트는 수정할 수 없습니다.
+                    <DialogDescription className="text-gray-600">
+                        커스텀 이벤트를 생성, 편집, 공유할 수 있습니다. 모든
+                        변경사항은 실시간으로 저장됩니다.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6">
-                    <MessageDisplay message={message} />
+                <div className="flex-1 overflow-y-auto">
+                    <div className="space-y-6 p-1">
+                        <MessageDisplay message={message} />
 
-                    <CreateEventSection
-                        onCreateEvent={createCustomEvent}
-                        onShowMessage={showMessage}
-                        onEventCreated={handleEventCreated}
-                    />
+                        <div className="flex flex-col gap-6">
+                            <CreateEventSection
+                                onCreateEvent={createCustomEvent}
+                                onShowMessage={showMessage}
+                                onEventCreated={handleEventCreated}
+                            />
 
-                    <ImportExportSection
-                        onImportEvent={importCustomEvent}
-                        onShowMessage={showMessage}
-                        onEventImported={handleEventImported}
-                    />
+                            <ImportExportSection
+                                onImportEvent={importCustomEvent}
+                                onShowMessage={showMessage}
+                                onEventImported={handleEventImported}
+                            />
+                        </div>
 
-                    <EventList
-                        customEvents={customEvents}
-                        selectedEvent={selectedEvent}
-                        onSelectEvent={setSelectedEvent}
-                        onDeleteEvent={deleteCustomEvent}
-                        onExportEvent={handleExportEvent}
-                        onExportToClipboard={handleExportToClipboard}
-                        onUpdateEvent={updateCustomEvent}
-                        onShowMessage={showMessage}
-                        onAddCase={addCaseToCustomEvent}
-                        onRemoveCase={removeCaseFromCustomEvent}
-                        onUpdateCase={updateCaseInCustomEvent}
-                        onAddObject={addObjectToCustomEventCase}
-                        onRemoveObject={removeObjectFromCustomEventCase}
-                        onUpdateObject={updateObjectInCustomEventCase}
-                    />
+                        <EventList
+                            customEvents={customEvents}
+                            selectedEvent={selectedEvent}
+                            onSelectEvent={setSelectedEvent}
+                            onDeleteEvent={deleteCustomEvent}
+                            onExportEvent={handleExportEvent}
+                            onExportToClipboard={handleExportToClipboard}
+                            onUpdateEvent={updateCustomEvent}
+                            onAddCase={addCaseToCustomEvent}
+                            onRemoveCase={removeCaseFromCustomEvent}
+                            onUpdateCase={updateCaseInCustomEvent}
+                            onAddObject={addObjectToCustomEventCase}
+                            onRemoveObject={removeObjectFromCustomEventCase}
+                            onUpdateObject={updateObjectInCustomEventCase}
+                        />
+                    </div>
                 </div>
 
-                <DialogFooter className="pt-4">
+                <DialogFooter className="mt-4 border-t border-gray-200 pt-4">
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="w-full sm:w-auto"
+                        className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 sm:w-auto"
                     >
                         닫기
                     </Button>
