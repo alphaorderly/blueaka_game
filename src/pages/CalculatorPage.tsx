@@ -14,8 +14,6 @@ import {
     isValidPlacement,
 } from '../utils/calculator/gridUtils';
 import { Card, CardContent } from '../components/ui/card';
-import { SettingsModal } from '../components/settings/SettingsModal';
-import { CalculatorHeader } from '../components/layout/CalculatorHeader';
 import { EventSelection } from '../components/forms/EventSelection';
 import { GameGrid } from '../components/game/GameGrid';
 import { ProbabilityResultsGrid } from '../components/visualization/ProbabilityResultsGrid';
@@ -28,28 +26,11 @@ const CalculatorPage: React.FC = () => {
         caseOptions,
         openedCells,
         placedObjects,
-        autoSave,
         availableEvents,
-        customEvents,
         setSelectedEvent,
         setSelectedCase,
         setOpenedCells,
         setPlacedObjects,
-        setAutoSave,
-        clearGridState,
-        resetToDefaults,
-        downloadFile,
-        createCustomEvent,
-        updateCustomEvent,
-        deleteCustomEvent,
-        exportCustomEvent,
-        importCustomEvent,
-        addCaseToCustomEvent,
-        removeCaseFromCustomEvent,
-        updateCaseInCustomEvent,
-        addObjectToCustomEventCase,
-        removeObjectFromCustomEventCase,
-        updateObjectInCustomEventCase,
     } = useCalculatorState();
 
     // Local state for UI interactions (not persisted)
@@ -61,12 +42,10 @@ const CalculatorPage: React.FC = () => {
         'horizontal' | 'vertical'
     >('horizontal');
     const [previewCells, setPreviewCells] = useState<GridPosition[]>([]);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
 
     // Object colors by object type (objectIndex), not by individual placed object
-    const { objectTypeColors, resetColors } =
-        useObjectTypeColors(currentObjects);
+    const { objectTypeColors } = useObjectTypeColors(currentObjects);
 
     useEffect(() => {
         const caseData = caseOptions.find(
@@ -245,41 +224,13 @@ const CalculatorPage: React.FC = () => {
         );
     };
 
-    const handleClearState = () => {
-        clearGridState();
-        setPlacementMode('opened');
-        setSelectedObjectIndex(-1);
-        setPreviewCells([]);
-    };
-
-    const handleResetToDefaults = () => {
-        resetToDefaults();
-        setPlacementMode('opened');
-        setSelectedObjectIndex(-1);
-        setPreviewCells([]);
-        resetColors();
-    };
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-            {/* Navigation Header */}
-            <div className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
-                <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <CalculatorHeader
-                        autoSave={autoSave}
-                        onSettingsOpen={() => setIsSettingsOpen(true)}
-                        onClearState={handleClearState}
-                        onToggleAutoSave={() => setAutoSave(!autoSave)}
-                        onResetToDefaults={handleResetToDefaults}
-                    />
-                </div>
-            </div>
-
+        <div>
             {/* Main Content */}
-            <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div className="w-full px-2 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
                 {/* Event Selection Section */}
-                <Card className="bg-background/80 dark:bg-background/90 mb-6 border-0 py-0 shadow-xl backdrop-blur-sm">
-                    <CardContent className="p-6">
+                <Card className="bg-background/80 dark:bg-background/90 mb-4 border-0 py-0 shadow-xl backdrop-blur-sm sm:mb-6">
+                    <CardContent className="p-4 sm:p-6">
                         <div className="mb-4">
                             <h2 className="text-foreground text-lg font-semibold">
                                 이벤트 설정
@@ -301,11 +252,11 @@ const CalculatorPage: React.FC = () => {
                 </Card>
 
                 {/* Main Game Area */}
-                <div className="grid gap-6">
+                <div className="grid gap-4 sm:gap-6">
                     {/* Interactive Game Grid with Object Placement */}
                     <Card className="bg-background/80 dark:bg-background/90 border-0 py-0 shadow-xl backdrop-blur-sm">
-                        <CardContent className="flex flex-col items-center p-6">
-                            <div className="w-full max-w-4xl">
+                        <CardContent className="flex flex-col items-center p-4 sm:p-6">
+                            <div className="w-full max-w-5xl">
                                 <GameGrid
                                     openedCells={openedCells}
                                     placedObjects={placedObjects}
@@ -334,8 +285,8 @@ const CalculatorPage: React.FC = () => {
 
                     {/* Probability Results Section */}
                     <Card className="bg-background/80 dark:bg-background/90 border-0 py-0 shadow-xl backdrop-blur-sm">
-                        <CardContent className="flex flex-col items-center p-6">
-                            <div className="w-full max-w-2xl">
+                        <CardContent className="flex flex-col items-center p-4 sm:p-6">
+                            <div className="w-full max-w-3xl">
                                 <ProbabilityResultsGrid
                                     probabilities={probabilities}
                                     openedCells={openedCells}
@@ -349,29 +300,6 @@ const CalculatorPage: React.FC = () => {
                     </Card>
                 </div>
             </div>
-
-            {/* Settings Modal */}
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                customEvents={customEvents}
-                selectedEvent={selectedEvent}
-                createCustomEvent={createCustomEvent}
-                updateCustomEvent={updateCustomEvent}
-                deleteCustomEvent={deleteCustomEvent}
-                setSelectedEvent={setSelectedEvent}
-                exportCustomEvent={exportCustomEvent}
-                importCustomEvent={importCustomEvent}
-                downloadFile={downloadFile}
-                addCaseToCustomEvent={addCaseToCustomEvent}
-                removeCaseFromCustomEvent={removeCaseFromCustomEvent}
-                updateCaseInCustomEvent={updateCaseInCustomEvent}
-                addObjectToCustomEventCase={addObjectToCustomEventCase}
-                removeObjectFromCustomEventCase={
-                    removeObjectFromCustomEventCase
-                }
-                updateObjectInCustomEventCase={updateObjectInCustomEventCase}
-            />
         </div>
     );
 };
