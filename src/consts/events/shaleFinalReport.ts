@@ -9,7 +9,7 @@ export const shaleFinalReportEvent: EventData = {
             value: 'case1',
             label: '1, 4 회차',
             objects: [
-                { w: 2, h: 2, count: 2, totalCount: 2 },
+                { w: 2, h: 2, count: 3, totalCount: 3 },
                 { w: 3, h: 2, count: 2, totalCount: 2 },
                 { w: 4, h: 2, count: 1, totalCount: 1 },
             ],
@@ -19,7 +19,7 @@ export const shaleFinalReportEvent: EventData = {
             label: '2, 5 회차',
             objects: [
                 { w: 1, h: 3, count: 2, totalCount: 2 },
-                { w: 3, h: 2, count: 2, totalCount: 2 },
+                { w: 3, h: 2, count: 3, totalCount: 3 },
                 { w: 3, h: 3, count: 1, totalCount: 1 },
             ],
         },
@@ -27,8 +27,8 @@ export const shaleFinalReportEvent: EventData = {
             value: 'case3',
             label: '3, 6 회차',
             objects: [
-                { w: 2, h: 1, count: 5, totalCount: 5 },
-                { w: 1, h: 3, count: 3, totalCount: 3 },
+                { w: 2, h: 1, count: 6, totalCount: 6 },
+                { w: 1, h: 3, count: 4, totalCount: 4 },
                 { w: 1, h: 4, count: 2, totalCount: 2 },
             ],
         },
