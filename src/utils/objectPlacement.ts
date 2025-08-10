@@ -29,7 +29,7 @@ export interface PlacedObject {
 export function placeObjectsGuaranteed(
     objects: ObjectToPlace[]
 ): PlacedObject[] {
-    const maxAttempts = 5; // 최대 5번 시도
+    const maxAttempts = 8; // 더 많은 시도로 랜덤성 증가
     let bestResult: PlacedObject[] | null = null;
     let bestSparseness = -Infinity;
 
@@ -233,14 +233,15 @@ function generateRandomPlacements(
         1
     );
 
-    // 초기에는 분산 가중치 높게, 나중에는 낮게
-    const dispersionWeight = 3.0 * (1 - progressRatio * 0.7);
-    const antiClusterWeight = 2.0 * (1 - progressRatio * 0.5);
+    // 랜덤성을 크게 증가시키고 분산/가장자리 가중치 감소
+    const dispersionWeight = 1.0 * (1 - progressRatio * 0.8); // 기존 3.0에서 1.0으로 감소
+    const antiClusterWeight = 1.5 * (1 - progressRatio * 0.6); // 기존 2.0에서 1.5로 감소
+    const randomnessWeight = 3.0; // 랜덤 요소 가중치 증가
 
     for (const orientation of orientations) {
         for (let y = 0; y <= GRID_HEIGHT - orientation.height; y++) {
             for (let x = 0; x <= GRID_WIDTH - orientation.width; x++) {
-                // 1. 중앙 회피 점수 (분산 배치)
+                // 1. 중앙 회피 점수 (분산 배치) - 약화됨
                 const centerX = GRID_WIDTH / 2;
                 const centerY = GRID_HEIGHT / 2;
                 const objCenterX = x + orientation.width / 2;
@@ -251,7 +252,7 @@ function generateRandomPlacements(
                 );
                 const dispersionScore = distanceFromCenter * dispersionWeight;
 
-                // 2. Anti-clustering 페널티 계산
+                // 2. Anti-clustering 페널티 계산 - 약화됨
                 let clusterPenalty = 0;
                 const minDistance =
                     Math.max(orientation.width, orientation.height) + 1;
@@ -273,24 +274,15 @@ function generateRandomPlacements(
                     }
                 }
 
-                // 3. 가장자리 보너스 (경계에 가까울수록 보너스)
-                const edgeDistance = Math.min(
-                    x,
-                    y,
-                    GRID_WIDTH - 1 - (x + orientation.width - 1),
-                    GRID_HEIGHT - 1 - (y + orientation.height - 1)
-                );
-                const edgeBonus = (3 - edgeDistance) * 0.5;
+                // 3. 가장자리 보너스 제거 - 이제 중앙도 똑같이 선택될 수 있음
+                // const edgeBonus = 0; // 가장자리 편향 완전 제거
 
-                // 4. 랜덤 요소 (예측 불가능성)
-                const randomFactor = Math.random() * 1.5;
+                // 4. 랜덤 요소 크게 증가 (예측 불가능성 극대화)
+                const randomFactor = Math.random() * randomnessWeight;
 
-                // 최종 우선순위 계산 (낮을수록 우선)
+                // 최종 우선순위 계산 (낮을수록 우선) - 가장자리 보너스 제거
                 const priority =
-                    -dispersionScore -
-                    edgeBonus +
-                    clusterPenalty +
-                    randomFactor;
+                    -dispersionScore + clusterPenalty + randomFactor;
 
                 placements.push({
                     x,
@@ -307,12 +299,8 @@ function generateRandomPlacements(
     // 우선순위로 정렬
     placements.sort((a, b) => a.priority - b.priority);
 
-    // 상위 70%를 랜덤하게 섞어서 더 많은 변화 허용
-    const topPercent = Math.floor(placements.length * 0.7);
-    const randomizedTop = shuffleArray(placements.slice(0, topPercent));
-    const rest = placements.slice(topPercent);
-
-    return [...randomizedTop, ...rest].map(
+    // 전체를 랜덤하게 섞어서 최대한 예측 불가능한 배치
+    return shuffleArray(placements).map(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         ({ priority, ...placement }) => placement
     );
