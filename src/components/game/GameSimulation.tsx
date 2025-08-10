@@ -5,6 +5,10 @@ import {
     generateColorForObjectType,
     ObjectTypeColor,
 } from '../../utils/calculator/colorUtils';
+import {
+    placeObjectsGuaranteed,
+    ObjectToPlace,
+} from '../../utils/objectPlacement';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -24,6 +28,7 @@ interface HiddenObject {
     height: number;
     cells: GridPosition[];
     found: boolean;
+    isRotated: boolean; // 회전 정보 추가
 }
 
 interface GameState {
@@ -59,77 +64,63 @@ export const GameSimulation: React.FC<GameSimulationProps> = ({
     const initializeGame = useCallback(() => {
         if (!currentCaseOption) return;
 
-        const hiddenObjects: HiddenObject[] = [];
-        const newObjectTypeColors: { [objectIndex: number]: ObjectTypeColor } =
-            {};
-        let objectId = 0;
+        // 새로운 보장된 배치 알고리즘 사용
+        const objectsToPlace: ObjectToPlace[] = currentCaseOption.objects.map(
+            (obj, index) => ({
+                w: obj.w,
+                h: obj.h,
+                count: obj.count,
+                objectIndex: index,
+            })
+        );
 
-        // 각 오브젝트 타입별로 색상 생성
-        currentCaseOption.objects.forEach((_, objectIndex) => {
-            newObjectTypeColors[objectIndex] = generateColorForObjectType(
-                {},
-                objectIndex
-            );
-        });
+        try {
+            const placedObjects = placeObjectsGuaranteed(objectsToPlace);
 
-        // 각 오브젝트 타입별로 랜덤하게 배치
-        currentCaseOption.objects.forEach((obj, objectIndex) => {
-            for (let i = 0; i < obj.count; i++) {
-                let placed = false;
-                let attempts = 0;
-                const maxAttempts = 100;
+            // PlacedObject를 HiddenObject로 변환
+            const hiddenObjects: HiddenObject[] = placedObjects.map((obj) => ({
+                id: obj.id,
+                objectIndex: obj.objectIndex,
+                startX: obj.startX,
+                startY: obj.startY,
+                width: obj.width,
+                height: obj.height,
+                cells: obj.cells,
+                found: false,
+                isRotated: obj.isRotated,
+            }));
 
-                while (!placed && attempts < maxAttempts) {
-                    const startX = Math.floor(
-                        Math.random() * (GRID_WIDTH - obj.w + 1)
-                    );
-                    const startY = Math.floor(
-                        Math.random() * (GRID_HEIGHT - obj.h + 1)
-                    );
+            const newObjectTypeColors: {
+                [objectIndex: number]: ObjectTypeColor;
+            } = {};
 
-                    // 겹치는지 확인
-                    const newCells: GridPosition[] = [];
-                    for (let dx = 0; dx < obj.w; dx++) {
-                        for (let dy = 0; dy < obj.h; dy++) {
-                            newCells.push({ x: startX + dx, y: startY + dy });
-                        }
-                    }
+            // 각 오브젝트 타입별로 색상 생성
+            currentCaseOption.objects.forEach((_, objectIndex) => {
+                newObjectTypeColors[objectIndex] = generateColorForObjectType(
+                    {},
+                    objectIndex
+                );
+            });
 
-                    const hasOverlap = hiddenObjects.some((existingObj) =>
-                        existingObj.cells.some((cell) =>
-                            newCells.some(
-                                (newCell) =>
-                                    newCell.x === cell.x && newCell.y === cell.y
-                            )
-                        )
-                    );
-
-                    if (!hasOverlap) {
-                        hiddenObjects.push({
-                            id: `obj-${objectId++}`,
-                            objectIndex,
-                            startX,
-                            startY,
-                            width: obj.w,
-                            height: obj.h,
-                            cells: newCells,
-                            found: false,
-                        });
-                        placed = true;
-                    }
-                    attempts++;
-                }
-            }
-        });
-
-        setObjectTypeColors(newObjectTypeColors);
-        setGameState({
-            hiddenObjects,
-            revealedCells: [],
-            moves: 0,
-            isComplete: false,
-            showSolution: false,
-        });
+            setObjectTypeColors(newObjectTypeColors);
+            setGameState({
+                hiddenObjects,
+                revealedCells: [],
+                moves: 0,
+                isComplete: false,
+                showSolution: false,
+            });
+        } catch (error) {
+            console.error('❌ 오브젝트 배치 실패:', error);
+            // 폴백: 빈 게임 상태
+            setGameState({
+                hiddenObjects: [],
+                revealedCells: [],
+                moves: 0,
+                isComplete: false,
+                showSolution: false,
+            });
+        }
     }, [currentCaseOption]);
 
     // 이벤트나 케이스가 변경될 때 게임 초기화
@@ -346,31 +337,32 @@ export const GameSimulation: React.FC<GameSimulationProps> = ({
             <Card className="p-4">
                 <h3 className="mb-3 text-sm font-medium">찾아야 할 오브젝트</h3>
                 <div className="grid gap-2 sm:grid-cols-3">
-                    {currentCaseOption.objects.map((obj, index) => (
-                        <div
-                            key={index}
-                            className="bg-muted/50 flex items-center gap-2 rounded-lg p-2"
-                        >
-                            <div className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded text-xs font-bold">
-                                {index + 1}
+                    {currentCaseOption.objects.map((obj, index) => {
+                        const foundObjects = gameState.hiddenObjects.filter(
+                            (hiddenObj) =>
+                                hiddenObj.objectIndex === index &&
+                                hiddenObj.found
+                        );
+
+                        return (
+                            <div
+                                key={index}
+                                className="bg-muted/50 flex items-center gap-2 rounded-lg p-2"
+                            >
+                                <div className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded text-xs font-bold">
+                                    {index + 1}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-xs font-medium">
+                                        {obj.w}×{obj.h} 크기
+                                    </p>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                    {foundObjects.length}/{obj.count}
+                                </Badge>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-xs font-medium">
-                                    {obj.w}×{obj.h} 크기
-                                </p>
-                            </div>
-                            <Badge variant="secondary" className="text-xs">
-                                {
-                                    gameState.hiddenObjects.filter(
-                                        (hiddenObj) =>
-                                            hiddenObj.objectIndex === index &&
-                                            hiddenObj.found
-                                    ).length
-                                }
-                                /{obj.count}
-                            </Badge>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </Card>
 

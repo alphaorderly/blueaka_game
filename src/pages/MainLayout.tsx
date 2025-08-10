@@ -36,6 +36,7 @@ const MainLayout: React.FC = () => {
 
     const handleClearState = () => {
         clearGridState();
+        location.reload(); // 페이지 새로고침
     };
 
     const handleToggleAutoSave = () => {
@@ -44,6 +45,7 @@ const MainLayout: React.FC = () => {
 
     const handleResetToDefaults = () => {
         resetToDefaults();
+        location.reload(); // 페이지 새로고침
     };
 
     return (
