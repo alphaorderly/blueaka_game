@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     GameObject,
     GridPosition,
     PlacedObject,
     PlacementMode,
 } from '../types/calculator';
-import { calculateProbabilities } from '../utils/probabilityCalculator';
 import { useCalculatorState } from '../hooks/useCalculatorState';
 import { useObjectTypeColors } from '../hooks/calculator/useObjectTypeColors';
 import { useProbabilityRankings } from '../hooks/calculator/useProbabilityRankings';
+import { useProbabilityCalculation } from '../hooks/calculator/useProbabilityCalculation';
 import {
     generatePreviewCells,
     isValidPlacement,
@@ -35,7 +35,6 @@ const CalculatorPage: React.FC = () => {
 
     // Local state for UI interactions (not persisted)
     const [currentObjects, setCurrentObjects] = useState<GameObject[]>([]);
-    const [probabilities, setProbabilities] = useState<number[][]>([]);
     const [placementMode, setPlacementMode] = useState<PlacementMode>('opened');
     const [selectedObjectIndex, setSelectedObjectIndex] = useState<number>(-1);
     const [placementOrientation, setPlacementOrientation] = useState<
@@ -71,32 +70,30 @@ const CalculatorPage: React.FC = () => {
         });
     }, [currentObjects, placedObjects]);
 
-    // Calculate probabilities whenever inputs change
-    const calculateAndDisplayResult = useCallback(() => {
-        if (currentObjects.length === 0) return;
-
-        // Update objects with remaining counts
-        const adjustedObjects = currentObjects.map((obj, index) => ({
+    // Prepare objects for probability calculation
+    const adjustedObjects = useMemo(() => {
+        return currentObjects.map((obj, index) => ({
             ...obj,
             count: remainingCounts[index],
         }));
+    }, [currentObjects, remainingCounts]);
 
-        // Combine opened cells and placed object cells
-        const allBlockedCells = [
-            ...openedCells,
-            ...placedObjects.flatMap((obj) => obj.cells),
-        ];
+    // Combine opened cells and placed object cells
+    const allBlockedCells = useMemo(() => {
+        return [...openedCells, ...placedObjects.flatMap((obj) => obj.cells)];
+    }, [openedCells, placedObjects]);
 
-        const newProbabilities = calculateProbabilities(
-            adjustedObjects,
-            allBlockedCells
-        );
-        setProbabilities(newProbabilities);
-    }, [currentObjects, openedCells, placedObjects, remainingCounts]);
-
-    useEffect(() => {
-        calculateAndDisplayResult();
-    }, [calculateAndDisplayResult]);
+    // Use the probability calculation hook
+    const {
+        probabilities,
+        isCalculating,
+        error: calculationError,
+        lastCalculationTime,
+    } = useProbabilityCalculation({
+        objects: adjustedObjects,
+        blockedCells: allBlockedCells,
+        enabled: currentObjects.length > 0,
+    });
 
     const { highestCells, secondHighestCells } = useProbabilityRankings(
         probabilities,
@@ -287,14 +284,70 @@ const CalculatorPage: React.FC = () => {
                     <Card className="bg-background/80 dark:bg-background/90 border-0 py-0 shadow-xl backdrop-blur-sm">
                         <CardContent className="flex flex-col items-center p-4 sm:p-6">
                             <div className="w-full max-w-3xl">
-                                <ProbabilityResultsGrid
-                                    probabilities={probabilities}
-                                    openedCells={openedCells}
-                                    placedObjects={placedObjects}
-                                    highestCells={highestCells}
-                                    secondHighestCells={secondHighestCells}
-                                    objectTypeColors={objectTypeColors}
-                                />
+                                {isCalculating ? (
+                                    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+                                        <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+                                        <div className="text-center">
+                                            <p className="text-foreground text-lg font-medium">
+                                                확률 계산 중...
+                                            </p>
+                                            <p className="text-muted-foreground mt-1 text-sm">
+                                                복잡한 계산이 진행 중입니다.
+                                                잠시만 기다려주세요.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : calculationError ? (
+                                    <div className="flex flex-col items-center justify-center space-y-4 py-12">
+                                        <div className="text-red-500">
+                                            <svg
+                                                className="h-8 w-8"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-medium text-red-600">
+                                                계산 오류
+                                            </p>
+                                            <p className="text-muted-foreground mt-1 text-sm">
+                                                {calculationError}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <ProbabilityResultsGrid
+                                            probabilities={probabilities}
+                                            openedCells={openedCells}
+                                            placedObjects={placedObjects}
+                                            highestCells={highestCells}
+                                            secondHighestCells={
+                                                secondHighestCells
+                                            }
+                                            objectTypeColors={objectTypeColors}
+                                        />
+                                        {lastCalculationTime !== null && (
+                                            <div className="mt-4 text-center">
+                                                <p className="text-muted-foreground text-xs">
+                                                    계산 시간:{' '}
+                                                    {lastCalculationTime.toFixed(
+                                                        1
+                                                    )}
+                                                    ms
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
