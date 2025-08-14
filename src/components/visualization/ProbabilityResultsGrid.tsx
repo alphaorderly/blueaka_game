@@ -62,10 +62,10 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
 
         // Result highlighting for probability display
         if (highestCells.some((cell) => cell.x === x && cell.y === y)) {
-            return `${baseClass} bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 dark:from-blue-950 dark:to-blue-900 dark:text-blue-100 border-blue-200 dark:border-blue-800 shadow-sm`;
+            return `${baseClass} bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 dark:from-amber-950 dark:to-amber-900 dark:text-amber-100 border-amber-200 dark:border-amber-800 shadow-sm`;
         }
         if (secondHighestCells.some((cell) => cell.x === x && cell.y === y)) {
-            return `${baseClass} bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 dark:from-amber-950 dark:to-amber-900 dark:text-amber-100 border-amber-200 dark:border-amber-800 shadow-sm`;
+            return `${baseClass} bg-gradient-to-br from-zinc-50 to-zinc-100 text-zinc-900 dark:from-zinc-900 dark:to-zinc-800 dark:text-zinc-100 border-zinc-200 dark:border-zinc-700 shadow-sm`;
         }
 
         return `${baseClass} bg-card/80 text-card-foreground hover:bg-card`;
@@ -82,7 +82,7 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
         if (isHighest) {
             return (
                 <div className="absolute -top-1 -right-1 z-10">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-2 ring-blue-200 dark:bg-blue-500 dark:ring-blue-800">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg ring-2 ring-amber-200 dark:bg-amber-500 dark:ring-amber-800">
                         <Crown className="h-2.5 w-2.5" />
                     </div>
                 </div>
@@ -92,7 +92,7 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
         if (isSecondHighest) {
             return (
                 <div className="absolute -top-1 -right-1 z-10">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-white shadow-lg ring-2 ring-amber-200 dark:bg-amber-500 dark:ring-amber-800">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-400 text-white shadow-lg ring-2 ring-zinc-200 dark:bg-zinc-500 dark:ring-zinc-700">
                         <Star className="h-2.5 w-2.5" />
                     </div>
                 </div>
@@ -137,8 +137,8 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
             <div className="flex flex-wrap gap-4 text-xs">
                 <div className="flex items-center gap-2">
                     <div className="relative">
-                        <div className="h-4 w-4 rounded border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100"></div>
-                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-blue-600 text-white">
+                        <div className="h-4 w-4 rounded border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100"></div>
+                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-amber-600 text-white">
                             <Crown className="h-1.5 w-1.5" />
                         </div>
                     </div>
@@ -146,8 +146,8 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
-                        <div className="h-4 w-4 rounded border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100"></div>
-                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-amber-600 text-white">
+                        <div className="h-4 w-4 rounded border border-zinc-200 bg-gradient-to-br from-zinc-50 to-zinc-100"></div>
+                        <div className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-zinc-400 text-white">
                             <Star className="h-1.5 w-1.5" />
                         </div>
                     </div>
