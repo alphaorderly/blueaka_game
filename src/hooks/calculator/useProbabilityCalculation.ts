@@ -49,6 +49,43 @@ export function useProbabilityCalculation({
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     const currentRequestId = useRef<string | null>(null);
 
+    // 결과 캐싱을 위한 ref 추가
+    const resultCache = useRef<
+        Map<
+            string,
+            {
+                probabilities: number[][];
+                calculationTime: number;
+            }
+        >
+    >(new Map());
+
+    // Create a stable key for memoization based on inputs
+    // 객체 순서를 정규화하여 캐시 적중률 향상
+    const inputKey = useMemo(() => {
+        const objectsKey = [...objects]
+            .sort((a, b) => {
+                if (a.w !== b.w) return a.w - b.w;
+                if (a.h !== b.h) return a.h - b.h;
+                return a.count - b.count;
+            })
+            .map((obj) => `${obj.w}x${obj.h}:${obj.count}`)
+            .join(',');
+        const blockedKey = [...blockedCells]
+            .map((cell) => `${cell.x},${cell.y}`)
+            .sort()
+            .join('|');
+        const key = `${objectsKey}#${blockedKey}`;
+
+        console.log('[useProbabilityCalculation] Input key generated:', {
+            key,
+            objectsKey,
+            blockedKey,
+        });
+
+        return key;
+    }, [objects, blockedCells]);
+
     // Initialize worker
     useEffect(() => {
         console.log('[useProbabilityCalculation] Initializing worker');
@@ -90,6 +127,26 @@ export function useProbabilityCalculation({
                             calculationTime: `${calculationTime.toFixed(2)}ms`,
                         }
                     );
+
+                    // 결과 캐싱
+                    resultCache.current.set(inputKey, {
+                        probabilities,
+                        calculationTime,
+                    });
+
+                    // 캐시 크기 제한 (메모리 관리 - LRU 방식)
+                    if (resultCache.current.size > 50) {
+                        const firstKey = resultCache.current
+                            .keys()
+                            .next().value;
+                        if (firstKey) {
+                            resultCache.current.delete(firstKey);
+                            console.log(
+                                '[useProbabilityCalculation] Cache size limit reached, removed oldest entry'
+                            );
+                        }
+                    }
+
                     setProbabilities(probabilities);
                     setLastCalculationTime(calculationTime);
                     setError(null);
@@ -120,27 +177,7 @@ export function useProbabilityCalculation({
                 workerRef.current.terminate();
             }
         };
-    }, []);
-
-    // Create a stable key for memoization based on inputs
-    const inputKey = useMemo(() => {
-        const objectsKey = objects
-            .map((obj) => `${obj.w}x${obj.h}:${obj.count}`)
-            .join(',');
-        const blockedKey = blockedCells
-            .map((cell) => `${cell.x},${cell.y}`)
-            .sort()
-            .join('|');
-        const key = `${objectsKey}#${blockedKey}`;
-
-        console.log('[useProbabilityCalculation] Input key generated:', {
-            key,
-            objectsKey,
-            blockedKey,
-        });
-
-        return key;
-    }, [objects, blockedCells]);
+    }, [inputKey]);
 
     const calculateAsync = useCallback(() => {
         console.log('[useProbabilityCalculation] Calculate async called:', {
@@ -157,6 +194,20 @@ export function useProbabilityCalculation({
             setIsCalculating(false);
             setError(null);
             setLastCalculationTime(null);
+            return;
+        }
+
+        // 캐시 확인
+        const cached = resultCache.current.get(inputKey);
+        if (cached) {
+            console.log('[useProbabilityCalculation] Using cached result:', {
+                calculationTime: `${cached.calculationTime.toFixed(2)}ms`,
+                cacheSize: resultCache.current.size,
+            });
+            setProbabilities(cached.probabilities);
+            setLastCalculationTime(cached.calculationTime);
+            setIsCalculating(false);
+            setError(null);
             return;
         }
 
@@ -188,7 +239,7 @@ export function useProbabilityCalculation({
         };
 
         workerRef.current.postMessage(message);
-    }, [objects, blockedCells, enabled]);
+    }, [objects, blockedCells, enabled, inputKey]);
 
     // Debounced trigger calculation when inputs change
     useEffect(() => {
@@ -210,7 +261,7 @@ export function useProbabilityCalculation({
                 '[useProbabilityCalculation] Debounce timeout completed, triggering calculation'
             );
             calculateAsync();
-        }, 300); // 300ms debounce
+        }, 150); // 150ms debounce - 응답성 향상
 
         // Cleanup function
         return () => {
