@@ -1,16 +1,25 @@
 import { Routes, Route } from 'react-router';
-import CalculatorPage from './pages/CalculatorPage';
-import GameSimulationPage from './pages/GameSimulationPage';
-import MainLayout from './pages/MainLayout';
+import AppShell from './app/layout/AppShell';
+import InventoryDashboard from './app/routes/inventory-management/inventory/InventoryDashboard';
+import SimulationDashboard from './app/routes/inventory-management/simulation/SimulationDashboard';
+import { InventoryStateProvider } from '@/hooks/inventory';
+import { ThemeProvider } from '@/hooks/theme';
 
 const App = () => {
     return (
-        <Routes>
-            <Route path="/" element={<MainLayout />}>
-                <Route index element={<CalculatorPage />} />
-                <Route path="simulation" element={<GameSimulationPage />} />
-            </Route>
-        </Routes>
+        <ThemeProvider>
+            <InventoryStateProvider>
+                <Routes>
+                    <Route path="/" element={<AppShell />}>
+                        <Route index element={<InventoryDashboard />} />
+                        <Route
+                            path="simulation"
+                            element={<SimulationDashboard />}
+                        />
+                    </Route>
+                </Routes>
+            </InventoryStateProvider>
+        </ThemeProvider>
     );
 };
 
