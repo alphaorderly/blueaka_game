@@ -103,7 +103,7 @@ export const EventListItem: React.FC<EventListItemProps> = ({
     return (
         <div className="space-y-4">
             {/* Event Header - Action Buttons */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between px-4">
                 <div className="flex items-center gap-2">
                     <Button
                         onClick={() => onExportToFile(event.id)}
@@ -189,7 +189,7 @@ export const EventListItem: React.FC<EventListItemProps> = ({
 
             {/* Cases List */}
             <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between px-4">
                     <h3 className="text-foreground text-sm font-medium">
                         케이스 목록
                     </h3>
@@ -206,28 +206,25 @@ export const EventListItem: React.FC<EventListItemProps> = ({
 
                 {event.caseOptions.length === 0 ? (
                     <Card className="border-border/60 dark:border-border/40 border-dashed">
-                        <CardContent className="pt-6 pb-6 text-center">
+                        <CardContent className="space-y-1 px-4 py-6 text-center">
                             <p className="text-muted-foreground text-sm">
                                 케이스가 없습니다
                             </p>
-                            <p className="text-muted-foreground/80 mt-1 text-xs">
+                            <p className="text-muted-foreground/80 text-xs">
                                 위 버튼을 클릭해서 케이스를 추가해보세요
                             </p>
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="space-y-3">
-                        {event.caseOptions.map((caseOption, caseIndex) => (
+                        {event.caseOptions.map((caseOption) => (
                             <Card
                                 key={caseOption.value}
                                 className="border-border/60 dark:border-border/40 py-2"
                             >
-                                <CardContent className="pt-4 pb-4">
+                                <CardContent className="space-y-4 px-4 py-4">
                                     {/* Case Header */}
-                                    <div className="mb-4 flex items-center gap-3">
-                                        <Badge variant="secondary">
-                                            케이스 {caseIndex + 1}
-                                        </Badge>
+                                    <div className="flex items-center gap-3">
                                         <div className="flex-1">
                                             <Input
                                                 value={caseOption.label}
@@ -294,10 +291,10 @@ export const EventListItem: React.FC<EventListItemProps> = ({
                                                             key={objIndex}
                                                             className="border-border/60 bg-muted/30 dark:border-border/40 dark:bg-muted/15 rounded-lg border p-3"
                                                         >
-                                                            <div className="flex items-center gap-3">
+                                                            <div className="flex items-start gap-3">
                                                                 <Badge
                                                                     variant="outline"
-                                                                    className="bg-background/80 text-muted-foreground text-xs"
+                                                                    className="bg-background/80 text-muted-foreground self-center text-xs"
                                                                 >
                                                                     #
                                                                     {objIndex +
@@ -402,27 +399,11 @@ export const EventListItem: React.FC<EventListItemProps> = ({
                                                                     }
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    className="text-destructive hover:bg-destructive/15 h-8 w-8 p-0"
+                                                                    className="text-destructive hover:bg-destructive/15 h-8 w-8 self-end p-0"
                                                                     title="오브젝트 삭제"
                                                                 >
                                                                     <X className="h-4 w-4" />
                                                                 </Button>
-                                                            </div>
-
-                                                            {/* Object Summary */}
-                                                            <div className="border-border/60 text-muted-foreground dark:border-border/40 mt-2 border-t pt-2">
-                                                                <p className="text-xs">
-                                                                    크기:{' '}
-                                                                    {obj.w} ×{' '}
-                                                                    {obj.h} ={' '}
-                                                                    {obj.w *
-                                                                        obj.h}
-                                                                    칸 | 총{' '}
-                                                                    {
-                                                                        obj.totalCount
-                                                                    }
-                                                                    개
-                                                                </p>
                                                             </div>
                                                         </div>
                                                     )

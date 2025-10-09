@@ -80,7 +80,7 @@ export const ImportExportSection: React.FC<ImportExportSectionProps> = ({
     };
 
     return (
-        <div className="border-border/60 bg-muted/30 dark:border-border/40 dark:bg-muted/20 space-y-4 rounded-lg border p-4">
+        <div className="space-y-4 rounded-lg border border-none p-4">
             <div>
                 <h3 className="text-foreground text-base font-semibold">
                     커스텀 이벤트 가져오기

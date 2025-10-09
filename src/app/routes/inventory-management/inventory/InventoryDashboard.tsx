@@ -93,7 +93,6 @@ const InventoryDashboard = () => {
     >('horizontal');
     const [previewCells, setPreviewCells] = useState<GridPosition[]>([]);
     const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
     const { objectTypeColors } = useObjectTypeColors(currentObjects);
@@ -383,13 +382,37 @@ const InventoryDashboard = () => {
                                 >
                                     커스텀 이벤트 초기화
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setIsSettingsModalOpen(true)}
-                                >
-                                    커스텀 이벤트 관리
-                                </Button>
+                                <SettingsModal
+                                    trigger={
+                                        <Button variant="outline" size="sm">
+                                            커스텀 이벤트 관리
+                                        </Button>
+                                    }
+                                    customEvents={customEvents}
+                                    selectedEvent={selectedEvent}
+                                    createCustomEvent={createCustomEvent}
+                                    updateCustomEvent={updateCustomEvent}
+                                    deleteCustomEvent={deleteCustomEvent}
+                                    exportCustomEvent={exportCustomEvent}
+                                    importCustomEvent={importCustomEvent}
+                                    downloadFile={downloadFile}
+                                    addCaseToCustomEvent={addCaseToCustomEvent}
+                                    removeCaseFromCustomEvent={
+                                        removeCaseFromCustomEvent
+                                    }
+                                    updateCaseInCustomEvent={
+                                        updateCaseInCustomEvent
+                                    }
+                                    addObjectToCustomEventCase={
+                                        addObjectToCustomEventCase
+                                    }
+                                    removeObjectFromCustomEventCase={
+                                        removeObjectFromCustomEventCase
+                                    }
+                                    updateObjectInCustomEventCase={
+                                        updateObjectInCustomEventCase
+                                    }
+                                />
                             </div>
                         </div>
                     </CardHeader>
@@ -554,27 +577,6 @@ const InventoryDashboard = () => {
                     )}
                 </CardContent>
             </Card>
-
-            <SettingsModal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-                customEvents={customEvents}
-                selectedEvent={selectedEvent}
-                createCustomEvent={createCustomEvent}
-                updateCustomEvent={updateCustomEvent}
-                deleteCustomEvent={deleteCustomEvent}
-                exportCustomEvent={exportCustomEvent}
-                importCustomEvent={importCustomEvent}
-                downloadFile={downloadFile}
-                addCaseToCustomEvent={addCaseToCustomEvent}
-                removeCaseFromCustomEvent={removeCaseFromCustomEvent}
-                updateCaseInCustomEvent={updateCaseInCustomEvent}
-                addObjectToCustomEventCase={addObjectToCustomEventCase}
-                removeObjectFromCustomEventCase={
-                    removeObjectFromCustomEventCase
-                }
-                updateObjectInCustomEventCase={updateObjectInCustomEventCase}
-            />
 
             <Dialog
                 open={isResetDialogOpen}

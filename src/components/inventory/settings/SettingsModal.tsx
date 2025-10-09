@@ -3,22 +3,14 @@ import {
     EventData,
     InventoryObject,
 } from '@/types/inventory-management/inventory';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { DialogShell } from '@/components/ui/DialogShell';
 import { MessageDisplay } from '@/components/inventory/settings/components/MessageDisplay';
 import { CreateEventSection } from '@/components/inventory/settings/components/CreateEventSection';
 import { ImportExportSection } from '@/components/inventory/settings/components/ImportExportSection';
 import { EventList } from '@/components/inventory/settings/components/EventList';
 
 interface SettingsModalProps {
-    isOpen: boolean;
-    onClose: () => void;
+    trigger: React.ReactNode;
     customEvents: EventData[];
     selectedEvent: string;
     // Custom Event Management
@@ -56,8 +48,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
-    isOpen,
-    onClose,
+    trigger,
     customEvents,
     selectedEvent,
     createCustomEvent,
@@ -130,59 +121,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
-                <DialogHeader className="border-border/60 dark:border-border/40 border-b pb-4">
-                    <DialogTitle className="text-foreground text-xl font-semibold">
-                        커스텀 이벤트 관리
-                    </DialogTitle>
-                </DialogHeader>
+        <DialogShell
+            title="커스텀 이벤트 관리"
+            onClose={clearMessage}
+            bodyClassName="px-4"
+            content={
+                <div className="space-y-6">
+                    <MessageDisplay message={message} />
 
-                <div className="flex-1 overflow-y-auto">
-                    <div className="space-y-6 p-1">
-                        <MessageDisplay message={message} />
+                    <div className="flex flex-col">
+                        <CreateEventSection
+                            onCreateEvent={createCustomEvent}
+                            onShowMessage={showMessage}
+                            onEventCreated={handleEventCreated}
+                        />
 
-                        <div className="flex flex-col gap-6">
-                            <CreateEventSection
-                                onCreateEvent={createCustomEvent}
-                                onShowMessage={showMessage}
-                                onEventCreated={handleEventCreated}
-                            />
-
-                            <ImportExportSection
-                                onImportEvent={importCustomEvent}
-                                onShowMessage={showMessage}
-                                onEventImported={handleEventImported}
-                            />
-                        </div>
-
-                        <EventList
-                            customEvents={customEvents}
-                            selectedEvent={selectedEvent}
-                            onDeleteEvent={deleteCustomEvent}
-                            onExportEvent={handleExportEvent}
-                            onExportToClipboard={handleExportToClipboard}
-                            onUpdateEvent={updateCustomEvent}
-                            onAddCase={addCaseToCustomEvent}
-                            onRemoveCase={removeCaseFromCustomEvent}
-                            onUpdateCase={updateCaseInCustomEvent}
-                            onAddObject={addObjectToCustomEventCase}
-                            onRemoveObject={removeObjectFromCustomEventCase}
-                            onUpdateObject={updateObjectInCustomEventCase}
+                        <ImportExportSection
+                            onImportEvent={importCustomEvent}
+                            onShowMessage={showMessage}
+                            onEventImported={handleEventImported}
                         />
                     </div>
-                </div>
 
-                <DialogFooter className="border-border/60 dark:border-border/40 mt-4 border-t pt-4">
-                    <Button
-                        variant="outline"
-                        onClick={onClose}
-                        className="w-full sm:w-auto"
-                    >
-                        닫기
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <EventList
+                        customEvents={customEvents}
+                        selectedEvent={selectedEvent}
+                        onDeleteEvent={deleteCustomEvent}
+                        onExportEvent={handleExportEvent}
+                        onExportToClipboard={handleExportToClipboard}
+                        onUpdateEvent={updateCustomEvent}
+                        onAddCase={addCaseToCustomEvent}
+                        onRemoveCase={removeCaseFromCustomEvent}
+                        onUpdateCase={updateCaseInCustomEvent}
+                        onAddObject={addObjectToCustomEventCase}
+                        onRemoveObject={removeObjectFromCustomEventCase}
+                        onUpdateObject={updateObjectInCustomEventCase}
+                    />
+
+                    <div className="w-[0px]"></div>
+                </div>
+            }
+        >
+            {trigger}
+        </DialogShell>
     );
 };

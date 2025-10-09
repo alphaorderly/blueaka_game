@@ -42,14 +42,11 @@ export const CreateEventSection: React.FC<CreateEventSectionProps> = ({
     };
 
     return (
-        <div className="border-border/60 bg-muted/30 dark:border-border/40 dark:bg-muted/20 space-y-4 rounded-lg border p-4">
+        <div className="space-y-4 rounded-lg border border-none bg-none p-4">
             <div>
                 <h3 className="text-foreground text-base font-semibold">
                     새 커스텀 이벤트 만들기
                 </h3>
-                <p className="text-muted-foreground mt-1 text-sm">
-                    새로운 확률 계산 이벤트를 생성할 수 있습니다
-                </p>
             </div>
 
             <div className="space-y-3">

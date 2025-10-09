@@ -83,7 +83,7 @@ export const EventList: React.FC<EventListProps> = ({
 
     if (customEvents.length === 0) {
         return (
-            <div className="border-border/60 bg-muted/20 dark:border-border/40 rounded-lg border-2 border-dashed p-8 text-center">
+            <div className="border-border/60 dark:border-border/40 rounded-lg border-2 border-dashed p-8 text-center">
                 <p className="text-muted-foreground font-medium">
                     아직 커스텀 이벤트가 없습니다
                 </p>
@@ -96,19 +96,13 @@ export const EventList: React.FC<EventListProps> = ({
 
     return (
         <div className="space-y-4">
-            <div className="border-border/60 dark:border-border/40 flex items-center justify-between border-b pb-3">
-                <h2 className="text-foreground text-lg font-semibold">
-                    커스텀 이벤트 관리
-                </h2>
-                <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground text-sm">
-                        편집할 이벤트:
-                    </span>
+            <div className="border-border/60 dark:border-border/40 px-4m flex w-full items-center justify-between pb-3">
+                <div className="flex w-full items-center gap-2">
                     <Select
                         value={selectedCustomEventId}
                         onValueChange={setSelectedCustomEventId}
                     >
-                        <SelectTrigger className="w-[200px]">
+                        <SelectTrigger className="w-full">
                             <SelectValue placeholder="이벤트 선택" />
                         </SelectTrigger>
                         <SelectContent>
