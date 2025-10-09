@@ -1,7 +1,16 @@
 import { Link } from 'react-router';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuBadge,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import type { NavSection } from '../nav-items';
 
 interface AppSidebarProps {
@@ -11,67 +20,96 @@ interface AppSidebarProps {
 
 const AppSidebar = ({ sections, currentPath }: AppSidebarProps) => {
     return (
-        <aside className="hidden w-64 flex-none lg:flex">
-            <div className="border-border/60 bg-card/80 flex h-full w-full flex-col rounded-2xl border p-4 shadow-sm backdrop-blur">
-                <nav className="flex flex-1 flex-col gap-6">
-                    {sections.map((section) => (
-                        <div
-                            key={section.title}
-                            className="group border-border/60 bg-muted/40 relative space-y-2 rounded-xl border p-3 transition-colors"
-                        >
-                            <p className="text-muted-foreground/80 mb-2 text-xs font-semibold tracking-[0.18em] uppercase">
-                                {section.title}
-                            </p>
-                            <div className="space-y-1.5 pl-1">
+        <Sidebar
+            collapsible="icon"
+            className="border-border/60 bg-card/80 group-data-[variant=sidebar]:border-r"
+        >
+            <SidebarHeader className="p-4">
+                <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl text-base font-semibold">
+                        BA
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-muted-foreground/80 text-xs font-semibold tracking-[0.28em] uppercase">
+                            BlueAka Tools
+                        </span>
+                        <span className="text-foreground text-sm font-semibold">
+                            블루아카이브 종합 도구
+                        </span>
+                    </div>
+                </div>
+            </SidebarHeader>
+
+            <SidebarContent>
+                {sections.map((section) => (
+                    <SidebarGroup key={section.title}>
+                        <SidebarGroupLabel className="text-muted-foreground/80 text-xs tracking-[0.18em]">
+                            {section.title}
+                        </SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
                                 {section.items.map((item) => {
                                     const isActive = currentPath === item.href;
+
                                     return (
-                                        <Button
-                                            key={item.title}
-                                            asChild
-                                            variant={
-                                                isActive ? 'secondary' : 'ghost'
-                                            }
-                                            className={cn(
-                                                'group hover:bg-muted/60 focus-visible:ring-ring relative flex w-full items-center justify-start gap-2 rounded-lg px-3 py-2 text-left text-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-                                                item.disabled &&
-                                                    'pointer-events-none opacity-60',
-                                                isActive &&
-                                                    'border-primary/30 bg-primary/10 text-primary border shadow-sm'
-                                            )}
-                                        >
-                                            <Link
-                                                to={item.href}
-                                                className="flex w-full items-center gap-2.5"
-                                            >
-                                                <item.icon className="text-muted-foreground group-hover:text-primary size-4 transition-colors" />
-                                                <span className="text-foreground text-sm font-medium">
-                                                    {item.title}
-                                                </span>
-                                                {item.badge && (
-                                                    <Badge
-                                                        variant={
-                                                            isActive
-                                                                ? 'default'
-                                                                : 'secondary'
-                                                        }
-                                                        className="border-border/70 bg-background/60 border text-xs uppercase"
+                                        <SidebarMenuItem key={item.title}>
+                                            {item.disabled ? (
+                                                <SidebarMenuButton
+                                                    isActive={isActive}
+                                                    disabled
+                                                    aria-disabled="true"
+                                                    tooltip={item.title}
+                                                >
+                                                    <NavButtonContent
+                                                        icon={item.icon}
+                                                        title={item.title}
+                                                    />
+                                                </SidebarMenuButton>
+                                            ) : (
+                                                <SidebarMenuButton
+                                                    asChild
+                                                    isActive={isActive}
+                                                    tooltip={item.title}
+                                                >
+                                                    <Link
+                                                        to={item.href}
+                                                        className="flex w-full items-center gap-2"
                                                     >
-                                                        {item.badge}
-                                                    </Badge>
-                                                )}
-                                            </Link>
-                                        </Button>
+                                                        <NavButtonContent
+                                                            icon={item.icon}
+                                                            title={item.title}
+                                                        />
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                            )}
+                                            {item.badge && (
+                                                <SidebarMenuBadge>
+                                                    {item.badge}
+                                                </SidebarMenuBadge>
+                                            )}
+                                        </SidebarMenuItem>
                                     );
                                 })}
-                            </div>
-                        </div>
-                    ))}
-                </nav>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                ))}
+            </SidebarContent>
+        </Sidebar>
+    );
+};
 
-                <div className="mt-auto" />
-            </div>
-        </aside>
+interface NavButtonContentProps {
+    icon: NavSection['items'][number]['icon'];
+    title: string;
+}
+
+const NavButtonContent = ({ icon: Icon, title }: NavButtonContentProps) => {
+    return (
+        <span className="flex w-full items-center gap-2">
+            <Icon className="text-muted-foreground size-4" />
+            <span className="text-sm font-medium">{title}</span>
+        </span>
     );
 };
 

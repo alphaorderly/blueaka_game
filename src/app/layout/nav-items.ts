@@ -20,12 +20,12 @@ export const NAV_SECTIONS: NavSection[] = [
         items: [
             {
                 title: '확률 분석',
-                href: '/',
+                href: '/inventory/predict',
                 icon: BarChart3,
             },
             {
                 title: '시나리오 시뮬레이션',
-                href: '/simulation',
+                href: '/inventory/simulate',
                 icon: Gamepad2,
             },
         ],

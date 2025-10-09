@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { Github, Menu, Moon, Sun } from 'lucide-react';
+import { Github, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/theme';
 import { cn } from '@/lib/utils';
+import { MobileNav } from './MobileNav';
 
 const HeaderThemeToggle = ({ className }: { className?: string }) => {
     const { theme, toggleTheme } = useTheme();
@@ -25,23 +26,14 @@ const HeaderThemeToggle = ({ className }: { className?: string }) => {
 };
 
 interface AppHeaderProps {
-    onOpenMobileNav: () => void;
     actions?: ReactNode;
 }
 
-const AppHeader = ({ onOpenMobileNav, actions }: AppHeaderProps) => {
+const AppHeader = ({ actions }: AppHeaderProps) => {
     return (
-        <header className="pointer-events-none sticky top-4 z-40 flex justify-center px-4 sm:px-6 lg:px-8">
-            <div className="border-border/60 bg-background/90 supports-[backdrop-filter]:bg-background/75 pointer-events-auto mx-auto flex h-14 w-full max-w-6xl items-center gap-3 rounded-2xl border px-4 shadow-lg backdrop-blur sm:h-16 sm:px-6">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-foreground lg:hidden"
-                    onClick={onOpenMobileNav}
-                >
-                    <Menu className="size-5" />
-                    <span className="sr-only">메뉴 열기</span>
-                </Button>
+        <header className="pointer-events-none flex justify-center px-4 py-4 pb-0 sm:px-6 lg:px-10">
+            <div className="border-border/60 bg-background/90 pointer-events-auto mx-auto flex h-14 w-full max-w-6xl items-center gap-3 rounded-2xl border px-4 shadow-sm sm:h-16 sm:px-5">
+                <MobileNav />
 
                 <div className="flex flex-1 flex-col gap-0.5">
                     <span className="text-primary/80 text-xs font-semibold tracking-[0.28em] uppercase">

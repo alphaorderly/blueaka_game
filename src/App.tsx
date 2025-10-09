@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router';
+import { Routes, Route, Navigate } from 'react-router';
 import AppShell from './app/layout/AppShell';
 import InventoryDashboard from './app/routes/inventory-management/inventory/InventoryDashboard';
 import SimulationDashboard from './app/routes/inventory-management/simulation/SimulationDashboard';
@@ -10,13 +10,28 @@ const App = () => {
         <ThemeProvider>
             <InventoryStateProvider>
                 <Routes>
-                    <Route path="/" element={<AppShell />}>
-                        <Route index element={<InventoryDashboard />} />
+                    <Route path="/inventory" element={<AppShell />}>
                         <Route
-                            path="simulation"
+                            index
+                            element={<Navigate to="predict" replace />}
+                        />
+                        <Route
+                            path="predict"
+                            element={<InventoryDashboard />}
+                        />
+                        <Route
+                            path="simulate"
                             element={<SimulationDashboard />}
                         />
                     </Route>
+                    <Route
+                        path="/"
+                        element={<Navigate to="/inventory/predict" replace />}
+                    />
+                    <Route
+                        path="*"
+                        element={<Navigate to="/inventory/predict" replace />}
+                    />
                 </Routes>
             </InventoryStateProvider>
         </ThemeProvider>
