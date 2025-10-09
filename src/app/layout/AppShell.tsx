@@ -18,7 +18,7 @@ const AppShell = () => {
                 <AppHeader />
 
                 <div className="flex-1 px-4 pt-6 pb-10 sm:px-6 lg:px-10">
-                    <div className="border-border/60 bg-card/70 mx-auto min-h-[calc(100vh-11rem)] w-full max-w-5xl rounded-2xl border p-6 shadow-sm backdrop-blur">
+                    <div className="mx-auto min-h-[calc(100vh-11rem)] w-full max-w-7xl rounded-2xl backdrop-blur">
                         <Outlet />
                     </div>
                 </div>

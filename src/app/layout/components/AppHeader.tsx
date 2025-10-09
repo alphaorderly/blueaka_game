@@ -32,7 +32,7 @@ interface AppHeaderProps {
 const AppHeader = ({ actions }: AppHeaderProps) => {
     return (
         <header className="pointer-events-none flex justify-center px-4 py-4 pb-0 sm:px-6 lg:px-10">
-            <div className="border-border/60 bg-background/90 pointer-events-auto mx-auto flex h-14 w-full max-w-6xl items-center gap-3 rounded-2xl border px-4 shadow-sm sm:h-16 sm:px-5">
+            <div className="border-border/60 bg-background/90 pointer-events-auto mx-auto flex h-14 w-full max-w-7xl items-center gap-3 rounded-xl border px-4 sm:h-16 sm:px-5">
                 <MobileNav />
 
                 <div className="flex flex-1 flex-col gap-0.5">
