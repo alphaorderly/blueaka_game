@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Download, Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,6 @@ interface EventListItemProps {
     event: EventData;
     selectedEvent: string;
     onUpdateEvent: (eventId: string, updates: Partial<EventData>) => void;
-    onDeleteEvent: (eventId: string) => void;
-    onExportToFile: (eventId: string) => void;
-    onExportToClipboard: (eventId: string) => void;
     onAddCase: (eventId: string) => void;
     onRemoveCase: (eventId: string, caseId: string) => void;
     onUpdateCase: (
@@ -44,9 +41,6 @@ export const EventListItem: React.FC<EventListItemProps> = ({
     event,
     selectedEvent,
     onUpdateEvent,
-    onDeleteEvent,
-    onExportToFile,
-    onExportToClipboard,
     onAddCase,
     onRemoveCase,
     onUpdateCase,
@@ -60,16 +54,6 @@ export const EventListItem: React.FC<EventListItemProps> = ({
     );
 
     const isSelected = selectedEvent === event.id;
-
-    const handleDeleteEvent = () => {
-        if (
-            window.confirm(
-                `정말로 "${event.name}" 이벤트를 삭제하시겠습니까?\n\n모든 케이스와 설정이 함께 삭제됩니다.`
-            )
-        ) {
-            onDeleteEvent(event.id);
-        }
-    };
 
     const handleUpdateEventName = (newName: string) => {
         setEventName(newName);
@@ -101,50 +85,11 @@ export const EventListItem: React.FC<EventListItemProps> = ({
     };
 
     return (
-        <div className="space-y-4">
-            {/* Event Header - Action Buttons */}
-            <div className="flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                    <Button
-                        onClick={() => onExportToFile(event.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/40 h-8 w-8 p-0"
-                        title="파일로 내보내기"
-                    >
-                        <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        onClick={() => onExportToClipboard(event.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/40 h-8 w-8 p-0"
-                        title="클립보드에 복사"
-                    >
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        onClick={handleDeleteEvent}
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                        title="이벤트 삭제"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="text-xs">
-                        {event.caseOptions.length}개 케이스
-                    </Badge>
-                </div>
-            </div>
-
+        <div className="space-y-4 px-4 pt-2">
             {/* Event Info */}
             <div
                 className={cn(
-                    'space-y-4 rounded-lg p-4 transition-colors',
+                    'space-y-4 rounded-lg transition-colors',
                     isSelected
                         ? 'bg-accent/30 dark:bg-accent/10'
                         : 'bg-muted/30 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
@@ -162,7 +107,7 @@ export const EventListItem: React.FC<EventListItemProps> = ({
                         value={eventName}
                         onChange={(e) => setEventName(e.target.value)}
                         onBlur={(e) => handleUpdateEventName(e.target.value)}
-                        className="text-lg font-semibold"
+                        className="text-sm"
                         placeholder="이벤트 이름을 입력하세요"
                     />
                 </div>

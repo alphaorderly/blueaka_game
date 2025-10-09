@@ -40,15 +40,10 @@ const SimulationDashboard = () => {
                     />
                 </CardContent>
             </Card>
-
-            <Card className="border-border/60 bg-card/95 supports-[backdrop-filter]:bg-card/80 border shadow-sm backdrop-blur-sm">
-                <CardContent className="space-y-6">
-                    <InventorySimulation
-                        selectedEvent={selectedEvent}
-                        selectedCase={selectedCase}
-                    />
-                </CardContent>
-            </Card>
+            <InventorySimulation
+                selectedEvent={selectedEvent}
+                selectedCase={selectedCase}
+            />
         </div>
     );
 };

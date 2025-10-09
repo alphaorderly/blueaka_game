@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, FolderOpen } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface ImportExportSectionProps {
     onImportEvent: (jsonString: string) => {
@@ -10,14 +11,10 @@ interface ImportExportSectionProps {
         message: string;
         eventId?: string;
     };
-    onShowMessage: (type: 'success' | 'error', text: string) => void;
-    onEventImported: (eventId?: string) => void;
 }
 
 export const ImportExportSection: React.FC<ImportExportSectionProps> = ({
     onImportEvent,
-    onShowMessage,
-    onEventImported,
 }) => {
     const [importText, setImportText] = useState<string>('');
     const [showTextImport, setShowTextImport] = useState<boolean>(false);
@@ -46,13 +43,9 @@ export const ImportExportSection: React.FC<ImportExportSectionProps> = ({
             });
 
             const result = onImportEvent(content);
-            onShowMessage(result.success ? 'success' : 'error', result.message);
-
-            if (result.success && result.eventId) {
-                onEventImported(result.eventId);
-            }
+            toast.success(result.message);
         } catch (error) {
-            onShowMessage('error', '파일을 읽는 중 오류가 발생했습니다.');
+            toast.error('파일을 읽는 중 오류가 발생했습니다.');
             console.error('Import error:', error);
         }
 
@@ -63,19 +56,16 @@ export const ImportExportSection: React.FC<ImportExportSectionProps> = ({
 
     const handleTextImport = () => {
         if (!importText.trim()) {
-            onShowMessage('error', '가져올 텍스트를 입력해주세요.');
+            toast.error('가져올 텍스트를 입력해주세요.');
             return;
         }
 
         const result = onImportEvent(importText);
-        onShowMessage(result.success ? 'success' : 'error', result.message);
+        toast.success(result.message);
 
         if (result.success) {
             setImportText('');
             setShowTextImport(false);
-            if (result.eventId) {
-                onEventImported(result.eventId);
-            }
         }
     };
 

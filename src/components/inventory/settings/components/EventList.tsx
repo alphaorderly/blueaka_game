@@ -11,6 +11,8 @@ import {
     InventoryObject,
 } from '@/types/inventory-management/inventory';
 import { EventListItem } from '@/components/inventory/settings/components/EventListItem';
+import { Button } from '@/components/ui/button';
+import { Copy, Download, Trash2 } from 'lucide-react';
 
 interface EventListProps {
     customEvents: EventData[];
@@ -65,22 +67,6 @@ export const EventList: React.FC<EventListProps> = ({
         }
     }, [customEvents, selectedCustomEventId]);
 
-    const handleDeleteEvent = (eventId: string) => {
-        onDeleteEvent(eventId);
-
-        // 삭제된 이벤트가 현재 선택된 이벤트라면 다른 이벤트 선택
-        if (selectedCustomEventId === eventId) {
-            const remainingEvents = customEvents.filter(
-                (event) => event.id !== eventId
-            );
-            if (remainingEvents.length > 0) {
-                setSelectedCustomEventId(remainingEvents[0].id);
-            } else {
-                setSelectedCustomEventId('');
-            }
-        }
-    };
-
     if (customEvents.length === 0) {
         return (
             <div className="border-border/60 dark:border-border/40 rounded-lg border-2 border-dashed p-8 text-center">
@@ -94,9 +80,22 @@ export const EventList: React.FC<EventListProps> = ({
         );
     }
 
+    const handleDeleteEvent = (eventId: string) => {
+        const event = customEvents.find((e) => e.id === eventId);
+        if (!event) return;
+
+        if (
+            window.confirm(
+                `정말로 "${event.name}" 이벤트를 삭제하시겠습니까?\n\n모든 케이스와 설정이 함께 삭제됩니다.`
+            )
+        ) {
+            onDeleteEvent(event.id);
+        }
+    };
+
     return (
-        <div className="space-y-4">
-            <div className="border-border/60 dark:border-border/40 px-4m flex w-full items-center justify-between pb-3">
+        <div className="flex flex-col gap-2">
+            <div className="border-border/60 dark:border-border/40 flex w-full items-center justify-between px-4">
                 <div className="flex w-full items-center gap-2">
                     <Select
                         value={selectedCustomEventId}
@@ -113,6 +112,52 @@ export const EventList: React.FC<EventListProps> = ({
                             ))}
                         </SelectContent>
                     </Select>
+                    <div className="flex items-center justify-between px-4">
+                        {selectedCustomEventId &&
+                            (() => {
+                                const event = customEvents.find(
+                                    (e) => e.id === selectedCustomEventId
+                                );
+                                if (!event) return null;
+                                return (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            onClick={() =>
+                                                onExportEvent(event.id)
+                                            }
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/40 h-8 w-8 p-0"
+                                            title="파일로 내보내기"
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            onClick={() =>
+                                                onExportToClipboard(event.id)
+                                            }
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/40 h-8 w-8 p-0"
+                                            title="클립보드에 복사"
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            onClick={() =>
+                                                handleDeleteEvent(event.id)
+                                            }
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                                            title="이벤트 삭제"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                );
+                            })()}
+                    </div>
                 </div>
             </div>
 
@@ -128,9 +173,6 @@ export const EventList: React.FC<EventListProps> = ({
                         <EventListItem
                             event={currentEvent}
                             selectedEvent={selectedEvent}
-                            onDeleteEvent={handleDeleteEvent}
-                            onExportToFile={onExportEvent}
-                            onExportToClipboard={onExportToClipboard}
                             onUpdateEvent={onUpdateEvent}
                             onAddCase={onAddCase}
                             onRemoveCase={onRemoveCase}

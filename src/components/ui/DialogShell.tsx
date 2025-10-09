@@ -90,7 +90,7 @@ export const DialogShell: React.FC<DialogShellProps> = ({
                 {(title || showCloseButton || headerActions) && (
                     <DialogHeader
                         className={cn(
-                            'border-border/60 dark:border-border/40 flex flex-row items-center justify-between border-b p-4',
+                            'border-border/60 dark:border-border/40 flex flex-row items-center justify-between border-b px-4 py-2',
                             headerClassName
                         )}
                     >

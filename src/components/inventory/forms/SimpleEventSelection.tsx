@@ -88,24 +88,6 @@ export const SimpleEventSelection: React.FC<SimpleEventSelectionProps> = ({
                     </div>
                 )}
             </div>
-
-            {selectedEvent && (
-                <div className="space-y-4">
-                    <h3 className="text-foreground text-sm font-semibold tracking-[0.2em] uppercase">
-                        이벤트 정보
-                    </h3>
-                    <div className="border-border/60 bg-card/80 rounded-xl border p-4 shadow-sm">
-                        <h4 className="text-foreground text-base font-semibold">
-                            {selectedEvent.name}
-                        </h4>
-                        {selectedEvent.description && (
-                            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                                {selectedEvent.description}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

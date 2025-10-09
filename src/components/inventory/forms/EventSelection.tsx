@@ -34,7 +34,6 @@ export const EventSelection: React.FC<EventSelectionProps> = ({
     selectedCase,
     availableEvents,
     caseOptions,
-    currentObjects,
     onEventChange,
     onCaseChange,
 }) => {
@@ -86,43 +85,6 @@ export const EventSelection: React.FC<EventSelectionProps> = ({
                     </Select>
                 </div>
             </div>
-
-            {currentObjects.length > 0 && (
-                <div className="border-border/60 bg-card/80 rounded-xl border p-4 shadow-sm">
-                    <div className="mb-4 space-y-1">
-                        <div className="text-foreground text-sm font-semibold">
-                            현재 선택된 설정
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                            {availableEvents.find((e) => e.id === selectedEvent)
-                                ?.name || '알 수 없는 이벤트'}
-                        </div>
-                    </div>
-                    <div className="space-y-3">
-                        <div className="text-muted-foreground text-xs font-semibold tracking-[0.16em] uppercase">
-                            오브젝트 목록:
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            {currentObjects.map((obj, index) => (
-                                <div
-                                    key={index}
-                                    className="border-border/40 bg-background/70 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs shadow-sm"
-                                >
-                                    <div className="text-primary bg-primary/15 flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold">
-                                        {index + 1}
-                                    </div>
-                                    <span className="text-foreground">
-                                        {obj.w}×{obj.h} 크기
-                                    </span>
-                                    <span className="text-muted-foreground ml-auto">
-                                        {obj.totalCount}개
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

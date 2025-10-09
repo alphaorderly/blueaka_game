@@ -3,41 +3,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EventData } from '@/types/inventory-management/inventory';
+import { toast } from 'react-hot-toast';
 
 interface CreateEventSectionProps {
     onCreateEvent: (name: string, description?: string) => EventData;
-    onShowMessage: (type: 'success' | 'error', text: string) => void;
-    onEventCreated: (eventId: string) => void;
 }
 
 export const CreateEventSection: React.FC<CreateEventSectionProps> = ({
     onCreateEvent,
-    onShowMessage,
-    onEventCreated,
 }) => {
     const [newEventName, setNewEventName] = useState<string>('');
     const [newEventDescription, setNewEventDescription] = useState<string>('');
 
     const handleCreateEvent = () => {
         if (!newEventName.trim()) {
-            onShowMessage('error', '이벤트 이름을 입력해주세요.');
             return;
         }
 
         try {
-            const newEvent = onCreateEvent(
+            onCreateEvent(
                 newEventName.trim(),
                 newEventDescription.trim() || undefined
             );
             setNewEventName('');
             setNewEventDescription('');
-            onEventCreated(newEvent.id);
-            onShowMessage(
-                'success',
-                `커스텀 이벤트 "${newEvent.name}"가 생성되었습니다!`
-            );
         } catch {
-            onShowMessage('error', '이벤트 생성에 실패했습니다.');
+            toast.error('이벤트 생성에 실패했습니다.');
         }
     };
 

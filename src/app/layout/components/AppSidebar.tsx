@@ -10,6 +10,7 @@ import {
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import type { NavSection } from '../nav-items';
 
@@ -19,10 +20,12 @@ interface AppSidebarProps {
 }
 
 const AppSidebar = ({ sections, currentPath }: AppSidebarProps) => {
+    const { toggleSidebar, isMobile } = useSidebar();
+
     return (
         <Sidebar
             collapsible="icon"
-            className="border-border/60 bg-card/80 group-data-[variant=sidebar]:border-r"
+            className="border-border/60 bg-card group-data-[variant=sidebar]:border-r"
         >
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3">
@@ -74,6 +77,10 @@ const AppSidebar = ({ sections, currentPath }: AppSidebarProps) => {
                                                     <Link
                                                         to={item.href}
                                                         className="flex w-full items-center gap-2"
+                                                        onClick={() => {
+                                                            if (isMobile)
+                                                                toggleSidebar();
+                                                        }}
                                                     >
                                                         <NavButtonContent
                                                             icon={item.icon}

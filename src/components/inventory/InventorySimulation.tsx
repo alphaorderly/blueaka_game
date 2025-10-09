@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { HeadedCard } from '@/components/ui/HeadedCard';
 import { RefreshCw, Eye, EyeOff, PartyPopper } from 'lucide-react';
 import { GRID_HEIGHT, GRID_WIDTH } from '@/consts/inventory-management/events';
 
@@ -264,8 +265,8 @@ export const InventorySimulation = ({
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <HeadedCard>
+            <HeadedCard.Header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                     <h2 className="text-foreground text-xl font-semibold">
                         {selectedEvent.name}
@@ -297,29 +298,26 @@ export const InventorySimulation = ({
                         <RefreshCw className="h-4 w-4" />새 게임
                     </Button>
                 </div>
-            </div>
+            </HeadedCard.Header>
 
-            {simulationState.isComplete && (
-                <Card className="border-emerald-200/70 bg-emerald-50/70 p-4 text-center shadow-sm dark:border-emerald-500/40 dark:bg-emerald-900/40">
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-2">
-                            <PartyPopper className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                            <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-100">
-                                완료!
-                            </h3>
+            <HeadedCard.Content className="space-y-6">
+                {simulationState.isComplete && (
+                    <Card className="border-emerald-200/70 bg-emerald-50/70 p-4 text-center shadow-sm dark:border-emerald-500/40 dark:bg-emerald-900/40">
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="flex items-center gap-2">
+                                <PartyPopper className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-100">
+                                    완료!
+                                </h3>
+                            </div>
+                            <p className="text-sm text-emerald-700 dark:text-emerald-200">
+                                {simulationState.moves}번 클릭으로 모든
+                                오브젝트를 찾았습니다
+                            </p>
                         </div>
-                        <p className="text-sm text-emerald-700 dark:text-emerald-200">
-                            {simulationState.moves}번 클릭으로 모든 오브젝트를
-                            찾았습니다
-                        </p>
-                    </div>
-                </Card>
-            )}
+                    </Card>
+                )}
 
-            <Card className="border-border/70 bg-background/95 dark:bg-background/35 border p-4 shadow-sm dark:border-white/12">
-                <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-[0.18em] uppercase">
-                    찾아야 할 오브젝트
-                </h3>
                 <div className="grid gap-2 sm:grid-cols-3">
                     {currentCaseOption.objects.map((obj, index) => {
                         const foundObjects =
@@ -352,36 +350,36 @@ export const InventorySimulation = ({
                         );
                     })}
                 </div>
-            </Card>
 
-            <div className="overflow-x-auto">
-                <div
-                    className="border-border/70 bg-background/95 dark:bg-background/25 mx-auto grid w-fit gap-1 rounded-xl border p-3 shadow-md sm:gap-1.5 dark:border-white/12"
-                    style={{
-                        gridTemplateColumns: `repeat(${GRID_WIDTH}, minmax(32px, 48px))`,
-                        gridTemplateRows: `repeat(${GRID_HEIGHT}, minmax(32px, 48px))`,
-                    }}
-                >
-                    {Array.from({ length: GRID_HEIGHT }, (_, y) =>
-                        Array.from({ length: GRID_WIDTH }, (_, x) => (
-                            <div
-                                key={`${x}-${y}`}
-                                onClick={() => handleCellClick(x, y)}
-                                className={getCellClassName(x, y)}
-                                style={{
-                                    minHeight: '32px',
-                                    minWidth: '32px',
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                    ...getCellStyles(x, y),
-                                }}
-                            >
-                                {renderCellContent(x, y)}
-                            </div>
-                        ))
-                    )}
+                <div className="overflow-x-auto">
+                    <div
+                        className="border-border/70 bg-background/95 dark:bg-background/25 mx-auto grid w-fit gap-1 rounded-xl border p-3 shadow-md sm:gap-1.5 dark:border-white/12"
+                        style={{
+                            gridTemplateColumns: `repeat(${GRID_WIDTH}, minmax(32px, 48px))`,
+                            gridTemplateRows: `repeat(${GRID_HEIGHT}, minmax(32px, 48px))`,
+                        }}
+                    >
+                        {Array.from({ length: GRID_HEIGHT }, (_, y) =>
+                            Array.from({ length: GRID_WIDTH }, (_, x) => (
+                                <div
+                                    key={`${x}-${y}`}
+                                    onClick={() => handleCellClick(x, y)}
+                                    className={getCellClassName(x, y)}
+                                    style={{
+                                        minHeight: '32px',
+                                        minWidth: '32px',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        ...getCellStyles(x, y),
+                                    }}
+                                >
+                                    {renderCellContent(x, y)}
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
-            </div>
-        </div>
+            </HeadedCard.Content>
+        </HeadedCard>
     );
 };

@@ -3,7 +3,7 @@ import AppShell from './app/layout/AppShell';
 import InventoryDashboard from './app/routes/inventory-management/inventory/InventoryDashboard';
 import SimulationDashboard from './app/routes/inventory-management/simulation/SimulationDashboard';
 import { InventoryStateProvider } from '@/hooks/inventory';
-import { ThemeProvider } from '@/hooks/theme';
+import { ThemeProvider } from '@/hooks/theme/theme';
 
 const App = () => {
     return (

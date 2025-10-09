@@ -20,19 +20,14 @@ import {
     isValidPlacement,
 } from '@/utils/inventory/gridUtils';
 import { cn } from '@/lib/utils';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { CardDescription, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EventSelection } from '@/components/inventory/forms/EventSelection';
 import { InventoryGrid } from '@/components/inventory';
 import { ProbabilityResultsGrid } from '@/components/inventory/visualization/ProbabilityResultsGrid';
 import { Button } from '@/components/ui/button';
 import { SettingsModal } from '@/components/inventory/settings/SettingsModal';
+import { HeadedCard } from '@/components/ui/HeadedCard';
 import {
     Dialog,
     DialogContent,
@@ -41,6 +36,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { RefreshCcw, RotateCcw, Settings2 } from 'lucide-react';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -363,8 +359,8 @@ const InventoryDashboard = () => {
     return (
         <div className="space-y-8">
             <section className="space-y-6">
-                <Card className="border-border/60 bg-card/95 supports-[backdrop-filter]:bg-card/80 border shadow-sm backdrop-blur-sm">
-                    <CardHeader className="space-y-4">
+                <HeadedCard>
+                    <HeadedCard.Header className="space-y-4">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <CardTitle className="text-lg font-semibold">
@@ -376,15 +372,22 @@ const InventoryDashboard = () => {
                             </div>
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                                 <Button
-                                    variant="secondary"
+                                    variant="destructive"
                                     size="sm"
                                     onClick={() => setIsResetDialogOpen(true)}
+                                    className="gap-2"
                                 >
+                                    <RefreshCcw className="h-4 w-4" />
                                     커스텀 이벤트 초기화
                                 </Button>
                                 <SettingsModal
                                     trigger={
-                                        <Button variant="outline" size="sm">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-2"
+                                        >
+                                            <Settings2 className="h-4 w-4" />
                                             커스텀 이벤트 관리
                                         </Button>
                                     }
@@ -415,8 +418,8 @@ const InventoryDashboard = () => {
                                 />
                             </div>
                         </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                    </HeadedCard.Header>
+                    <HeadedCard.Content className="space-y-6">
                         <EventSelection
                             selectedEvent={selectedEvent}
                             selectedCase={selectedCase}
@@ -473,11 +476,11 @@ const InventoryDashboard = () => {
                                 </div>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </HeadedCard.Content>
+                </HeadedCard>
 
-                <Card className="border-border/60 bg-card/95 supports-[backdrop-filter]:bg-card/80 border shadow-sm backdrop-blur-sm">
-                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <HeadedCard>
+                    <HeadedCard.Header className="*:border-border/60 bg-accent/20 flex flex-col gap-3 p-4 !py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <CardTitle className="text-lg font-semibold">
                                 배치 시뮬레이션 보드
@@ -490,11 +493,13 @@ const InventoryDashboard = () => {
                             variant="outline"
                             size="sm"
                             onClick={handleBoardReset}
+                            className="gap-2"
                         >
+                            <RotateCcw className="h-4 w-4" />
                             보드 초기화
                         </Button>
-                    </CardHeader>
-                    <CardContent>
+                    </HeadedCard.Header>
+                    <HeadedCard.Content>
                         <InventoryGrid
                             openedCells={openedCells}
                             placedObjects={placedObjects}
@@ -517,12 +522,12 @@ const InventoryDashboard = () => {
                             onRemoveObject={removeObject}
                             onSetHoveredObjectId={setHoveredObjectId}
                         />
-                    </CardContent>
-                </Card>
+                    </HeadedCard.Content>
+                </HeadedCard>
             </section>
 
-            <Card className="border-border/60 bg-card/95 supports-[backdrop-filter]:bg-card/80 border shadow-sm backdrop-blur-sm">
-                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <HeadedCard>
+                <HeadedCard.Header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <CardTitle className="text-lg font-semibold">
                             배치 확률
@@ -541,8 +546,8 @@ const InventoryDashboard = () => {
                                 {lastCalculationTime.toFixed(1)}ms
                             </Badge>
                         )}
-                </CardHeader>
-                <CardContent>
+                </HeadedCard.Header>
+                <HeadedCard.Content>
                     {isCalculating ? (
                         <div className="border-border/60 bg-muted/30 flex h-[458px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed py-12 text-center">
                             <div className="border-border/60 h-10 w-10 animate-spin rounded-full border-2 border-t-transparent" />
@@ -575,8 +580,8 @@ const InventoryDashboard = () => {
                             />
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </HeadedCard.Content>
+            </HeadedCard>
 
             <Dialog
                 open={isResetDialogOpen}

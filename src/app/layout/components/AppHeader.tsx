@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Github, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTheme } from '@/hooks/theme';
+import { useTheme } from '@/hooks/theme/theme';
 import { cn } from '@/lib/utils';
 import { MobileNav } from './MobileNav';
 

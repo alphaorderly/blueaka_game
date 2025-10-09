@@ -5,7 +5,7 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, VariantProps } from 'class-variance-authority';
 import { PanelLeftIcon } from 'lucide-react';
 
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/theme/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -197,7 +197,12 @@ const Sidebar = ({
                     data-sidebar="sidebar"
                     data-slot="sidebar"
                     data-mobile="true"
-                    className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+                    className={cn(
+                        'bg-sidebar text-sidebar-foreground h-[93vh] w-(--sidebar-width) p-0 [&>button]:hidden',
+                        'top-4 right-auto bottom-4 left-2 max-w-[calc(100vw-2rem)] rounded-lg shadow-sm',
+                        'sm:top-6 sm:bottom-6 sm:left-6 sm:max-w-sm',
+                        className
+                    )}
                     style={
                         {
                             '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
