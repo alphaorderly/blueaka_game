@@ -4,8 +4,8 @@ export const hyakayoriSwimsuitEvent: EventData = {
     id: 'hyakayori-swimsuit-nagusaki',
     name: '백에서 나오는 한송이의 -자 정정당당하게, 수상 승부!-',
     description: '숨겨진 물건들을 찾아보세요!',
-    startDate: '2025-11-25 04:00',
-    endDate: '2025-12-10 04:00',
+    startDate: '2025-11-18 04:00',
+    endDate: '2025-12-2 04:00',
     caseOptions: [
         {
             value: 'case1',
