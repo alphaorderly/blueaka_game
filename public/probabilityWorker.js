@@ -146,12 +146,24 @@ class BitMaskUtils {
  * Creates placement candidates and selects exact or Monte Carlo solver.
  * @param {{w:number,h:number,count:number}[]} objects Requested objects.
  * @param {{x:number,y:number}[]} blockedCells Cells that cannot be occupied.
+ * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
+ * @param {{w:number,h:number,cells:{x:number,y:number}[]}[]} placedObjects Already placed objects (fixed placements).
  * @returns {number[][]} Probability grid sized to the worker grid.
  */
-function calculateProbabilities(objects, blockedCells) {
+function calculateProbabilities(
+    objects,
+    blockedCells,
+    hitCells,
+    placedObjects
+) {
+    hitCells = hitCells || [];
+    placedObjects = placedObjects || [];
+
     console.log('[ProbabilityWorker] Starting calculation with:', {
         objects: objects.map((obj) => `${obj.w}x${obj.h}(${obj.count})`),
         blockedCellsCount: blockedCells.length,
+        hitCellsCount: hitCells.length,
+        placedObjectsCount: placedObjects.length,
         gridSize: `${GRID_WIDTH}x${GRID_HEIGHT}`,
     });
 
@@ -165,6 +177,18 @@ function calculateProbabilities(objects, blockedCells) {
     for (const cell of blockedCells) {
         const bitIndex = getBitIndex(cell.x, cell.y);
         blockedMask |= 1n << BigInt(bitIndex);
+    }
+
+    // Create initial occupied mask from already placed objects
+    let initialOccupiedMask = 0n;
+    if (Array.isArray(placedObjects)) {
+        for (const placed of placedObjects) {
+            if (!placed || !Array.isArray(placed.cells)) continue;
+            for (const cell of placed.cells) {
+                const bitIndex = getBitIndex(cell.x, cell.y);
+                initialOccupiedMask |= 1n << BigInt(bitIndex);
+            }
+        }
     }
 
     // Helper function to get all valid orientations
@@ -316,7 +340,12 @@ function calculateProbabilities(objects, blockedCells) {
         console.log(
             `[ProbabilityWorker] Using exact enumeration (<= ${EXACT_CONFIGURATION_THRESHOLD} configurations)`
         );
-        return calculateProbabilitiesExact(allPossiblePlacements, blockedCells);
+        return calculateProbabilitiesExact(
+            allPossiblePlacements,
+            blockedCells,
+            hitCells,
+            initialOccupiedMask
+        );
     }
 
     console.log(
@@ -325,7 +354,9 @@ function calculateProbabilities(objects, blockedCells) {
     return calculateProbabilitiesWithMonteCarlo(
         objects,
         blockedCells,
-        allPossiblePlacements
+        allPossiblePlacements,
+        hitCells,
+        initialOccupiedMask
     );
 }
 
@@ -333,9 +364,16 @@ function calculateProbabilities(objects, blockedCells) {
  * Enumerates every configuration when the search space is small.
  * @param {Array<Array<{x:number,y:number,w:number,h:number,cells:{x:number,y:number}[],mask:bigint}>>} allPossiblePlacements Per-instance placement catalogue.
  * @param {{x:number,y:number}[]} blockedCells Cells that cannot be occupied.
+ * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
+ * @param {bigint} initialOccupiedMask Mask of already occupied cells from placedObjects.
  * @returns {number[][]} Probability grid derived from exact coverage counts.
  */
-function calculateProbabilitiesExact(allPossiblePlacements, blockedCells) {
+function calculateProbabilitiesExact(
+    allPossiblePlacements,
+    blockedCells,
+    hitCells,
+    initialOccupiedMask
+) {
     const probabilities = createProbabilityGrid();
 
     if (allPossiblePlacements.some((placements) => placements.length === 0)) {
@@ -353,6 +391,18 @@ function calculateProbabilitiesExact(allPossiblePlacements, blockedCells) {
 
     const enumerate = (index, occupiedMask) => {
         if (index >= allPossiblePlacements.length) {
+            // Validate that all hitCells are covered in this configuration
+            if (Array.isArray(hitCells) && hitCells.length > 0) {
+                const hitCovered = hitCells.every((hit) => {
+                    const bitIndex = getCellIndex(hit.x, hit.y);
+                    const cellMask = 1n << BigInt(bitIndex);
+                    return (occupiedMask & cellMask) !== 0n;
+                });
+                if (!hitCovered) {
+                    return;
+                }
+            }
+
             totalConfigurations++;
             let currentStamp = stampCounter++;
             if (stampCounter === 0xffffffff) {
@@ -388,7 +438,7 @@ function calculateProbabilitiesExact(allPossiblePlacements, blockedCells) {
         }
     };
 
-    enumerate(0, 0n);
+    enumerate(0, initialOccupiedMask || 0n);
 
     if (totalConfigurations === 0) {
         console.log(
@@ -434,12 +484,16 @@ function estimateTotalConfigurations(allPossiblePlacements) {
  * @param {{w:number,h:number,count:number}[]} objects Requested objects (unused but logged).
  * @param {{x:number,y:number}[]} blockedCells Cells that must never be occupied.
  * @param {Array<Array<{x:number,y:number,cells:{x:number,y:number}[],mask:bigint}>>} allPossiblePlacements Placement catalogue.
+ * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
+ * @param {bigint} initialOccupiedMask Mask of already occupied cells from placedObjects.
  * @returns {number[][]} Probability grid derived from random sampling.
  */
 function calculateProbabilitiesWithMonteCarlo(
     objects,
     blockedCells,
-    allPossiblePlacements
+    allPossiblePlacements,
+    hitCells,
+    initialOccupiedMask
 ) {
     const probabilities = createProbabilityGrid();
 
@@ -478,10 +532,23 @@ function calculateProbabilitiesWithMonteCarlo(
 
         const configurationMask = generateRandomConfiguration(
             allPossiblePlacements,
-            configurationBuffer
+            configurationBuffer,
+            initialOccupiedMask || 0n
         );
 
         if (configurationMask !== null) {
+            // Validate hitCells coverage for this configuration
+            if (Array.isArray(hitCells) && hitCells.length > 0) {
+                const allHitsCovered = hitCells.every((hit) => {
+                    const bitIndex = getCellIndex(hit.x, hit.y);
+                    const cellMask = 1n << BigInt(bitIndex);
+                    return (configurationMask & cellMask) !== 0n;
+                });
+
+                if (!allHitsCovered) {
+                    continue;
+                }
+            }
             validSamples++;
             let currentStamp = stampCounter++;
             if (stampCounter === 0xffffffff) {
@@ -572,13 +639,15 @@ function calculateProbabilitiesWithMonteCarlo(
  * Generates a single random configuration without overlapping placements.
  * @param {Array<Array<{cells:{x:number,y:number}[],mask:bigint}>>} allPossiblePlacements Placement catalogue.
  * @param {Array<{cells:{x:number,y:number}[],mask:bigint}>} configurationBuffer Reusable buffer for placements.
+ * @param {bigint} initialOccupiedMask Mask of already occupied cells from placedObjects.
  * @returns {bigint|null} Occupied mask for the configuration or null when infeasible.
  */
 function generateRandomConfiguration(
     allPossiblePlacements,
-    configurationBuffer
+    configurationBuffer,
+    initialOccupiedMask
 ) {
-    let occupiedMask = 0n;
+    let occupiedMask = initialOccupiedMask || 0n;
 
     for (let i = 0; i < allPossiblePlacements.length; i++) {
         const possiblePlacements = allPossiblePlacements[i];
@@ -588,21 +657,24 @@ function generateRandomConfiguration(
             return null;
         }
 
-        const startIndex = Math.floor(Math.random() * optionCount);
-        let selectedPlacement = null;
-
-        for (let offset = 0; offset < optionCount; offset++) {
-            const candidate =
-                possiblePlacements[(startIndex + offset) % optionCount];
+        // Collect only candidates that do not overlap with current occupied mask
+        const validCandidates = [];
+        for (let k = 0; k < optionCount; k++) {
+            const candidate = possiblePlacements[k];
             if (!BitMaskUtils.checkOverlap(occupiedMask, candidate.mask)) {
-                selectedPlacement = candidate;
-                break;
+                validCandidates.push(candidate);
             }
         }
 
-        if (!selectedPlacement) {
+        if (validCandidates.length === 0) {
+            // No valid placement for this object instance with current occupied state
             return null;
         }
+
+        const selectedIndex = Math.floor(
+            Math.random() * validCandidates.length
+        );
+        const selectedPlacement = validCandidates[selectedIndex];
 
         configurationBuffer[i] = selectedPlacement;
         occupiedMask |= selectedPlacement.mask;
@@ -631,20 +703,27 @@ function hasConvergedArrays(previous, current) {
 
 /**
  * Handles worker messages by running the probability calculation and returning the result.
- * @param {MessageEvent<{id:string|number,objects:{w:number,h:number,count:number}[],blockedCells:{x:number,y:number}[]}>} e Incoming message payload.
+ * @param {MessageEvent<{id:string|number,objects:{w:number,h:number,count:number}[],blockedCells:{x:number,y:number}[],hitCells?:{x:number,y:number}[],placedObjects?:{w:number,h:number,cells:{x:number,y:number}[]}[]}>} e Incoming message payload.
  */
 self.onmessage = function (e) {
-    const { id, objects, blockedCells } = e.data;
+    const { id, objects, blockedCells, hitCells, placedObjects } = e.data;
     console.log('[ProbabilityWorker] Received message:', {
         id,
         objectsCount: objects?.length || 0,
         blockedCellsCount: blockedCells?.length || 0,
+        hitCellsCount: hitCells?.length || 0,
+        placedObjectsCount: placedObjects?.length || 0,
     });
 
     const startTime = performance.now();
 
     try {
-        const probabilities = calculateProbabilities(objects, blockedCells);
+        const probabilities = calculateProbabilities(
+            objects,
+            blockedCells,
+            hitCells,
+            placedObjects
+        );
         const endTime = performance.now();
         const calculationTime = endTime - startTime;
 

@@ -7,6 +7,12 @@ import {
 interface UseProbabilityCalculationProps {
     objects: InventoryObject[];
     blockedCells: GridPosition[];
+    hitCells?: GridPosition[];
+    placedObjects?: {
+        w: number;
+        h: number;
+        cells: GridPosition[];
+    }[];
     enabled?: boolean;
 }
 
@@ -21,6 +27,12 @@ interface WorkerMessage {
     id: string;
     objects: InventoryObject[];
     blockedCells: GridPosition[];
+    hitCells: GridPosition[];
+    placedObjects?: {
+        w: number;
+        h: number;
+        cells: GridPosition[];
+    }[];
 }
 
 interface WorkerResponse {
@@ -33,6 +45,8 @@ interface WorkerResponse {
 export function useProbabilityCalculation({
     objects,
     blockedCells,
+    hitCells = [],
+    placedObjects = [],
     enabled = true,
 }: UseProbabilityCalculationProps): UseProbabilityCalculationResult {
     const [probabilities, setProbabilities] = useState<number[][]>([]);
@@ -69,8 +83,21 @@ export function useProbabilityCalculation({
             .map((cell) => `${cell.x},${cell.y}`)
             .sort()
             .join('|');
-        return `${objectsKey}#${blockedKey}`;
-    }, [objects, blockedCells]);
+        const hitKey = [...hitCells]
+            .map((cell) => `${cell.x},${cell.y}`)
+            .sort()
+            .join('|');
+        const placedKey = placedObjects
+            .map((obj) =>
+                obj.cells
+                    .map((cell) => `${cell.x},${cell.y}`)
+                    .sort()
+                    .join('|')
+            )
+            .sort()
+            .join(';');
+        return `${objectsKey}#${blockedKey}#${hitKey}#${placedKey}`;
+    }, [objects, blockedCells, hitCells, placedObjects]);
 
     useEffect(() => {
         workerRef.current = new Worker('/probabilityWorker.js');
@@ -159,10 +186,12 @@ export function useProbabilityCalculation({
             id: requestId,
             objects,
             blockedCells,
+            hitCells,
+            placedObjects,
         };
 
         workerRef.current.postMessage(message);
-    }, [objects, blockedCells, enabled, inputKey]);
+    }, [objects, blockedCells, hitCells, placedObjects, enabled, inputKey]);
 
     useEffect(() => {
         if (debounceTimeout.current) {
