@@ -148,7 +148,7 @@ class BitMaskUtils {
  * @param {{x:number,y:number}[]} blockedCells Cells that cannot be occupied.
  * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
  * @param {{w:number,h:number,cells:{x:number,y:number}[]}[]} placedObjects Already placed objects (fixed placements).
- * @returns {number[][]} Probability grid sized to the worker grid.
+ * @returns {{probabilities: number[][], objectProbabilities: number[][][]}} Probability grids.
  */
 function calculateProbabilities(
     objects,
@@ -168,6 +168,7 @@ function calculateProbabilities(
     });
 
     const probabilities = createProbabilityGrid();
+    const objectProbabilities = objects.map(() => createProbabilityGrid());
 
     // Helper function to convert grid position to bit index
     const getBitIndex = getCellIndex;
@@ -261,6 +262,8 @@ function calculateProbabilities(
 
     // Generate all possible placements for each object type
     const allPossiblePlacements = [];
+    // Maps each placement index to its object type index
+    const objectTypeMapping = [];
 
     console.log('[ProbabilityWorker] Generating possible placements...');
 
@@ -309,6 +312,7 @@ function calculateProbabilities(
         // Add multiple instances for each object type based on count
         for (let i = 0; i < count; i++) {
             allPossiblePlacements.push([...placements]);
+            objectTypeMapping.push(objectTypeIndex);
         }
     });
 
@@ -316,14 +320,14 @@ function calculateProbabilities(
         console.log(
             '[ProbabilityWorker] No possible placements found, returning empty probabilities'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     if (allPossiblePlacements.some((placements) => placements.length === 0)) {
         console.log(
             '[ProbabilityWorker] At least one object instance has no valid placements'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     const estimatedConfigurations = estimateTotalConfigurations(
@@ -344,7 +348,8 @@ function calculateProbabilities(
             allPossiblePlacements,
             blockedCells,
             hitCells,
-            initialOccupiedMask
+            initialOccupiedMask,
+            objectTypeMapping
         );
     }
 
@@ -356,7 +361,8 @@ function calculateProbabilities(
         blockedCells,
         allPossiblePlacements,
         hitCells,
-        initialOccupiedMask
+        initialOccupiedMask,
+        objectTypeMapping
     );
 }
 
@@ -366,26 +372,42 @@ function calculateProbabilities(
  * @param {{x:number,y:number}[]} blockedCells Cells that cannot be occupied.
  * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
  * @param {bigint} initialOccupiedMask Mask of already occupied cells from placedObjects.
- * @returns {number[][]} Probability grid derived from exact coverage counts.
+ * @param {number[]} objectTypeMapping Maps placement index to object type index.
+ * @returns {{probabilities: number[][], objectProbabilities: number[][][]}} Probability grids.
  */
 function calculateProbabilitiesExact(
     allPossiblePlacements,
     blockedCells,
     hitCells,
-    initialOccupiedMask
+    initialOccupiedMask,
+    objectTypeMapping
 ) {
     const probabilities = createProbabilityGrid();
+    const numObjectTypes = Math.max(...objectTypeMapping, -1) + 1;
+    const objectProbabilities = Array.from({ length: numObjectTypes }, () =>
+        createProbabilityGrid()
+    );
 
     if (allPossiblePlacements.some((placements) => placements.length === 0)) {
         console.log(
             '[ProbabilityWorker] Exact enumeration skipped - missing placements'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     const coverage = new Uint32Array(TOTAL_CELLS);
+    // Per-object-type coverage: objectCoverage[objectTypeIndex][cellIndex]
+    const objectCoverage = Array.from(
+        { length: numObjectTypes },
+        () => new Uint32Array(TOTAL_CELLS)
+    );
     const selection = new Array(allPossiblePlacements.length);
     const visitStamp = new Uint32Array(TOTAL_CELLS);
+    // Per-object-type visit stamps to avoid double-counting within same configuration
+    const objectVisitStamp = Array.from(
+        { length: numObjectTypes },
+        () => new Uint32Array(TOTAL_CELLS)
+    );
     let stampCounter = 1;
     let totalConfigurations = 0;
 
@@ -407,19 +429,33 @@ function calculateProbabilitiesExact(
             let currentStamp = stampCounter++;
             if (stampCounter === 0xffffffff) {
                 visitStamp.fill(0);
+                for (let t = 0; t < numObjectTypes; t++) {
+                    objectVisitStamp[t].fill(0);
+                }
                 stampCounter = 1;
                 currentStamp = stampCounter++;
             }
 
             for (let i = 0; i < selection.length; i++) {
                 const placement = selection[i];
+                const objectTypeIndex = objectTypeMapping[i];
                 const cells = placement.cells;
                 for (let c = 0; c < cells.length; c++) {
                     const cell = cells[c];
                     const cellIndex = getCellIndex(cell.x, cell.y);
+                    // Global coverage (any object)
                     if (visitStamp[cellIndex] !== currentStamp) {
                         visitStamp[cellIndex] = currentStamp;
                         coverage[cellIndex]++;
+                    }
+                    // Per-object-type coverage
+                    if (
+                        objectVisitStamp[objectTypeIndex][cellIndex] !==
+                        currentStamp
+                    ) {
+                        objectVisitStamp[objectTypeIndex][cellIndex] =
+                            currentStamp;
+                        objectCoverage[objectTypeIndex][cellIndex]++;
                     }
                 }
             }
@@ -444,7 +480,7 @@ function calculateProbabilitiesExact(
         console.log(
             '[ProbabilityWorker] Exact enumeration found no valid configurations'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     populateProbabilitiesFromCoverage(
@@ -454,11 +490,21 @@ function calculateProbabilitiesExact(
         blockedCells
     );
 
+    // Populate per-object-type probabilities
+    for (let t = 0; t < numObjectTypes; t++) {
+        populateProbabilitiesFromCoverage(
+            objectProbabilities[t],
+            objectCoverage[t],
+            totalConfigurations,
+            blockedCells
+        );
+    }
+
     console.log(
         `[ProbabilityWorker] Exact enumeration completed with ${totalConfigurations} configurations`
     );
 
-    return probabilities;
+    return { probabilities, objectProbabilities };
 }
 
 /**
@@ -486,22 +532,28 @@ function estimateTotalConfigurations(allPossiblePlacements) {
  * @param {Array<Array<{x:number,y:number,cells:{x:number,y:number}[],mask:bigint}>>} allPossiblePlacements Placement catalogue.
  * @param {{x:number,y:number}[]} hitCells Cells that must be covered by at least one placement.
  * @param {bigint} initialOccupiedMask Mask of already occupied cells from placedObjects.
- * @returns {number[][]} Probability grid derived from random sampling.
+ * @param {number[]} objectTypeMapping Maps placement index to object type index.
+ * @returns {{probabilities: number[][], objectProbabilities: number[][][]}} Probability grids.
  */
 function calculateProbabilitiesWithMonteCarlo(
     objects,
     blockedCells,
     allPossiblePlacements,
     hitCells,
-    initialOccupiedMask
+    initialOccupiedMask,
+    objectTypeMapping
 ) {
     const probabilities = createProbabilityGrid();
+    const numObjectTypes = Math.max(...objectTypeMapping, -1) + 1;
+    const objectProbabilities = Array.from({ length: numObjectTypes }, () =>
+        createProbabilityGrid()
+    );
 
     if (allPossiblePlacements.some((placements) => placements.length === 0)) {
         console.log(
             '[ProbabilityWorker] Monte Carlo skipped - missing placements'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     console.log(
@@ -509,7 +561,15 @@ function calculateProbabilitiesWithMonteCarlo(
     );
 
     const cellCoverage = new Uint32Array(TOTAL_CELLS);
+    const objectCoverage = Array.from(
+        { length: numObjectTypes },
+        () => new Uint32Array(TOTAL_CELLS)
+    );
     const visitStamp = new Uint32Array(TOTAL_CELLS);
+    const objectVisitStamp = Array.from(
+        { length: numObjectTypes },
+        () => new Uint32Array(TOTAL_CELLS)
+    );
     const configurationBuffer = new Array(allPossiblePlacements.length);
 
     const previousSnapshot = new Float64Array(TOTAL_CELLS);
@@ -553,6 +613,9 @@ function calculateProbabilitiesWithMonteCarlo(
             let currentStamp = stampCounter++;
             if (stampCounter === 0xffffffff) {
                 visitStamp.fill(0);
+                for (let t = 0; t < numObjectTypes; t++) {
+                    objectVisitStamp[t].fill(0);
+                }
                 stampCounter = 1;
                 currentStamp = stampCounter++;
             }
@@ -560,13 +623,24 @@ function calculateProbabilitiesWithMonteCarlo(
             for (let i = 0; i < configurationBuffer.length; i++) {
                 const placement = configurationBuffer[i];
                 if (!placement) continue;
+                const objectTypeIndex = objectTypeMapping[i];
                 const cells = placement.cells;
                 for (let c = 0; c < cells.length; c++) {
                     const cell = cells[c];
                     const cellIndex = getCellIndex(cell.x, cell.y);
+                    // Global coverage
                     if (visitStamp[cellIndex] !== currentStamp) {
                         visitStamp[cellIndex] = currentStamp;
                         cellCoverage[cellIndex]++;
+                    }
+                    // Per-object-type coverage
+                    if (
+                        objectVisitStamp[objectTypeIndex][cellIndex] !==
+                        currentStamp
+                    ) {
+                        objectVisitStamp[objectTypeIndex][cellIndex] =
+                            currentStamp;
+                        objectCoverage[objectTypeIndex][cellIndex]++;
                     }
                 }
             }
@@ -618,7 +692,7 @@ function calculateProbabilitiesWithMonteCarlo(
         console.log(
             '[ProbabilityWorker] No valid samples found in Monte Carlo'
         );
-        return probabilities;
+        return { probabilities, objectProbabilities };
     }
 
     populateProbabilitiesFromCoverage(
@@ -628,11 +702,21 @@ function calculateProbabilitiesWithMonteCarlo(
         blockedCells
     );
 
+    // Populate per-object-type probabilities
+    for (let t = 0; t < numObjectTypes; t++) {
+        populateProbabilitiesFromCoverage(
+            objectProbabilities[t],
+            objectCoverage[t],
+            validSamples,
+            blockedCells
+        );
+    }
+
     console.log(
         `[ProbabilityWorker] Monte Carlo completed: ${validSamples} valid samples out of ${totalSamples} total`
     );
 
-    return probabilities;
+    return { probabilities, objectProbabilities };
 }
 
 /**
@@ -718,7 +802,7 @@ self.onmessage = function (e) {
     const startTime = performance.now();
 
     try {
-        const probabilities = calculateProbabilities(
+        const result = calculateProbabilities(
             objects,
             blockedCells,
             hitCells,
@@ -730,12 +814,14 @@ self.onmessage = function (e) {
         console.log('[ProbabilityWorker] Sending response:', {
             id,
             calculationTime: `${calculationTime.toFixed(2)}ms`,
-            probabilitiesSize: `${probabilities[0]?.length || 0}x${probabilities.length || 0}`,
+            probabilitiesSize: `${result.probabilities[0]?.length || 0}x${result.probabilities.length || 0}`,
+            objectProbabilitiesCount: result.objectProbabilities?.length || 0,
         });
 
         const response = {
             id,
-            probabilities,
+            probabilities: result.probabilities,
+            objectProbabilities: result.objectProbabilities,
             calculationTime,
         };
 
@@ -751,6 +837,7 @@ self.onmessage = function (e) {
         const response = {
             id,
             probabilities: [],
+            objectProbabilities: [],
             error:
                 error instanceof Error ? error.message : 'Calculation failed',
             calculationTime,

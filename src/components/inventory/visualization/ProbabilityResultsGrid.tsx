@@ -3,6 +3,7 @@ import {
     GridPosition,
     PlacedObject,
     ProbabilityCell,
+    InventoryObject,
 } from '@/types/inventory-management/inventory';
 import {
     getPlacedObjectAt,
@@ -20,6 +21,8 @@ interface ProbabilityResultsGridProps {
     highestCells: ProbabilityCell[];
     secondHighestCells: ProbabilityCell[];
     objectTypeColors: { [objectIndex: number]: ObjectTypeColor };
+    probabilityFilter: number | null;
+    currentObjects: InventoryObject[];
 }
 
 export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
@@ -29,6 +32,8 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
     highestCells,
     secondHighestCells,
     objectTypeColors,
+    probabilityFilter,
+    currentObjects,
 }) => {
     const getCellStyles = (x: number, y: number) => {
         if (isCellOccupied(x, y, placedObjects)) {
@@ -133,6 +138,32 @@ export const ProbabilityResultsGrid: React.FC<ProbabilityResultsGridProps> = ({
 
     return (
         <div className="space-y-4">
+            {/* Filter indicator */}
+            {probabilityFilter !== null &&
+                currentObjects[probabilityFilter] && (
+                    <div className="border-primary/30 bg-primary/5 flex items-center gap-2 rounded-lg border px-3 py-2">
+                        <div
+                            className="flex h-6 w-6 items-center justify-center rounded text-xs font-semibold"
+                            style={{
+                                backgroundColor:
+                                    objectTypeColors[probabilityFilter]
+                                        ?.lightBg || '#f3f4f6',
+                                color:
+                                    objectTypeColors[probabilityFilter]
+                                        ?.lightText || '#1f2937',
+                            }}
+                        >
+                            {probabilityFilter + 1}
+                        </div>
+                        <span className="text-primary text-sm font-medium">
+                            오브젝트 {probabilityFilter + 1} (
+                            {currentObjects[probabilityFilter].w}×
+                            {currentObjects[probabilityFilter].h}) 확률만 표시
+                            중
+                        </span>
+                    </div>
+                )}
+
             {/* Legend */}
             <div className="flex flex-wrap gap-4 text-xs">
                 <div className="flex items-center gap-2">

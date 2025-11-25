@@ -90,6 +90,9 @@ const InventoryDashboard = () => {
     const [previewCells, setPreviewCells] = useState<GridPosition[]>([]);
     const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+    const [probabilityFilter, setProbabilityFilter] = useState<number | null>(
+        null
+    );
 
     const { objectTypeColors } = useObjectTypeColors(currentObjects);
 
@@ -99,6 +102,7 @@ const InventoryDashboard = () => {
         setSelectedObjectIndex(-1);
         setPreviewCells([]);
         setHoveredObjectId(null);
+        setProbabilityFilter(null);
     };
 
     const handleResetInventoryDefaults = () => {
@@ -107,6 +111,7 @@ const InventoryDashboard = () => {
         setSelectedObjectIndex(-1);
         setPreviewCells([]);
         setHoveredObjectId(null);
+        setProbabilityFilter(null);
     };
 
     useEffect(() => {
@@ -120,6 +125,7 @@ const InventoryDashboard = () => {
             setSelectedObjectIndex(-1);
             setPreviewCells([]);
             setPlacementOrientation('horizontal');
+            setProbabilityFilter(null);
         }
     }, [selectedCase, caseOptions]);
 
@@ -145,6 +151,7 @@ const InventoryDashboard = () => {
 
     const {
         probabilities,
+        objectProbabilities,
         isCalculating,
         error: calculationError,
         lastCalculationTime,
@@ -154,8 +161,19 @@ const InventoryDashboard = () => {
         enabled: currentObjects.length > 0,
     });
 
+    // Select the appropriate probabilities based on filter
+    const displayProbabilities = useMemo(() => {
+        if (probabilityFilter === null) {
+            return probabilities;
+        }
+        if (objectProbabilities && objectProbabilities[probabilityFilter]) {
+            return objectProbabilities[probabilityFilter];
+        }
+        return probabilities;
+    }, [probabilities, objectProbabilities, probabilityFilter]);
+
     const { highestCells, secondHighestCells } = useProbabilityRankings(
-        probabilities,
+        displayProbabilities,
         openedCells,
         placedObjects
     );
@@ -521,6 +539,8 @@ const InventoryDashboard = () => {
                             onCancelPlacement={cancelPlacement}
                             onRemoveObject={removeObject}
                             onSetHoveredObjectId={setHoveredObjectId}
+                            probabilityFilter={probabilityFilter}
+                            onProbabilityFilterChange={setProbabilityFilter}
                         />
                     </HeadedCard.Content>
                 </HeadedCard>
@@ -571,12 +591,14 @@ const InventoryDashboard = () => {
                     ) : (
                         <div className="space-y-6">
                             <ProbabilityResultsGrid
-                                probabilities={probabilities}
+                                probabilities={displayProbabilities}
                                 openedCells={openedCells}
                                 placedObjects={placedObjects}
                                 highestCells={highestCells}
                                 secondHighestCells={secondHighestCells}
                                 objectTypeColors={objectTypeColors}
+                                probabilityFilter={probabilityFilter}
+                                currentObjects={currentObjects}
                             />
                         </div>
                     )}

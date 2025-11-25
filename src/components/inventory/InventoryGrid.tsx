@@ -35,6 +35,8 @@ interface InventoryGridProps {
     onCancelPlacement: () => void;
     onRemoveObject: (objectId: string) => void;
     onSetHoveredObjectId: (objectId: string | null) => void;
+    probabilityFilter: number | null;
+    onProbabilityFilterChange: (filter: number | null) => void;
 }
 
 export const InventoryGrid = ({
@@ -58,6 +60,8 @@ export const InventoryGrid = ({
     onCancelPlacement,
     onRemoveObject,
     onSetHoveredObjectId,
+    probabilityFilter,
+    onProbabilityFilterChange,
 }: InventoryGridProps) => {
     const isCellPreview = (x: number, y: number) => {
         return previewCells.some((cell) => cell.x === x && cell.y === y);
@@ -143,9 +147,28 @@ export const InventoryGrid = ({
             <div className="space-y-4">
                 <div className="grid gap-4 lg:grid-cols-2">
                     <div className="space-y-3">
-                        <h4 className="text-foreground text-sm font-medium">
-                            오브젝트 선택
-                        </h4>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-foreground text-sm font-medium">
+                                오브젝트 선택
+                            </h4>
+                            {currentObjects.length > 0 && (
+                                <Button
+                                    variant={
+                                        probabilityFilter === null
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    onClick={() =>
+                                        onProbabilityFilterChange(null)
+                                    }
+                                    className="h-7 text-xs"
+                                >
+                                    {probabilityFilter === null ? '✓ ' : ''}전체
+                                    확률
+                                </Button>
+                            )}
+                        </div>
                         <div className="grid gap-2">
                             {currentObjects.map((obj, index) => {
                                 const remaining = remainingCounts[index];
@@ -153,6 +176,8 @@ export const InventoryGrid = ({
                                 const isSelected =
                                     placementMode === 'placing' &&
                                     selectedObjectIndex === index;
+                                const isFilterSelected =
+                                    probabilityFilter === index;
 
                                 return (
                                     <div
@@ -160,7 +185,9 @@ export const InventoryGrid = ({
                                         className={`group relative overflow-hidden rounded-lg border transition-all duration-200 ${
                                             isSelected
                                                 ? 'border-primary bg-primary/5 ring-primary/20 ring-2'
-                                                : 'border-border/40 bg-card/50 hover:bg-card/80'
+                                                : isFilterSelected
+                                                  ? 'border-primary/50 bg-primary/5'
+                                                  : 'border-border/40 bg-card/50 hover:bg-card/80'
                                         }`}
                                     >
                                         <div className="flex items-center gap-3 p-3">
@@ -190,6 +217,30 @@ export const InventoryGrid = ({
                                                     {remaining}개 남음
                                                 </div>
                                             </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    onProbabilityFilterChange(
+                                                        isFilterSelected
+                                                            ? null
+                                                            : index
+                                                    )
+                                                }
+                                                variant={
+                                                    isFilterSelected
+                                                        ? 'default'
+                                                        : 'ghost'
+                                                }
+                                                className={`min-w-[70px] text-xs transition-all ${
+                                                    isFilterSelected
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'text-muted-foreground hover:text-foreground'
+                                                }`}
+                                            >
+                                                {isFilterSelected
+                                                    ? '✓ 확률'
+                                                    : '확률'}
+                                            </Button>
                                             {remaining > 0 && (
                                                 <Button
                                                     size="sm"

@@ -18,6 +18,7 @@ interface UseProbabilityCalculationProps {
 
 interface UseProbabilityCalculationResult {
     probabilities: number[][];
+    objectProbabilities: number[][][];
     isCalculating: boolean;
     error: string | null;
     lastCalculationTime: number | null;
@@ -38,6 +39,7 @@ interface WorkerMessage {
 interface WorkerResponse {
     id: string;
     probabilities: number[][];
+    objectProbabilities?: number[][][];
     error?: string;
     calculationTime: number;
 }
@@ -50,6 +52,9 @@ export function useProbabilityCalculation({
     enabled = true,
 }: UseProbabilityCalculationProps): UseProbabilityCalculationResult {
     const [probabilities, setProbabilities] = useState<number[][]>([]);
+    const [objectProbabilities, setObjectProbabilities] = useState<
+        number[][][]
+    >([]);
     const [isCalculating, setIsCalculating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lastCalculationTime, setLastCalculationTime] = useState<
@@ -65,6 +70,7 @@ export function useProbabilityCalculation({
             string,
             {
                 probabilities: number[][];
+                objectProbabilities: number[][][];
                 calculationTime: number;
             }
         >
@@ -106,6 +112,7 @@ export function useProbabilityCalculation({
             const {
                 id,
                 probabilities: workerProbabilities,
+                objectProbabilities: workerObjectProbabilities,
                 error,
                 calculationTime,
             } = e.data;
@@ -116,10 +123,12 @@ export function useProbabilityCalculation({
                 if (error) {
                     setError(error);
                     setProbabilities([]);
+                    setObjectProbabilities([]);
                     setLastCalculationTime(null);
                 } else {
                     resultCache.current.set(inputKey, {
                         probabilities: workerProbabilities,
+                        objectProbabilities: workerObjectProbabilities || [],
                         calculationTime,
                     });
 
@@ -133,6 +142,7 @@ export function useProbabilityCalculation({
                     }
 
                     setProbabilities(workerProbabilities);
+                    setObjectProbabilities(workerObjectProbabilities || []);
                     setLastCalculationTime(calculationTime);
                     setError(null);
                 }
@@ -157,6 +167,7 @@ export function useProbabilityCalculation({
     const calculateAsync = useCallback(() => {
         if (!enabled || objects.length === 0 || !workerRef.current) {
             setProbabilities([]);
+            setObjectProbabilities([]);
             setIsCalculating(false);
             setError(null);
             setLastCalculationTime(null);
@@ -166,6 +177,7 @@ export function useProbabilityCalculation({
         const cached = resultCache.current.get(inputKey);
         if (cached) {
             setProbabilities(cached.probabilities);
+            setObjectProbabilities(cached.objectProbabilities);
             setLastCalculationTime(cached.calculationTime);
             setIsCalculating(false);
             setError(null);
@@ -211,6 +223,7 @@ export function useProbabilityCalculation({
 
     return {
         probabilities,
+        objectProbabilities,
         isCalculating,
         error,
         lastCalculationTime,
