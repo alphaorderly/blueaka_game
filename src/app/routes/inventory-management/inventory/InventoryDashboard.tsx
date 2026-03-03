@@ -349,19 +349,7 @@ const InventoryDashboard = () => {
                 }
 
                 if (end && now.isAfter(end)) {
-                    const rangeLabel = [start, end]
-                        .filter((date): date is dayjs.Dayjs => Boolean(date))
-                        .map((date) => date.format(EVENT_TIME_FORMAT))
-                        .join(' ~ ');
-
-                    return {
-                        eventName: event.name,
-                        statusText: '종료',
-                        detailText:
-                            rangeLabel ||
-                            `${end.format(EVENT_TIME_FORMAT)} 종료`,
-                        highlight: false,
-                    } satisfies EventStatus;
+                    return null;
                 }
 
                 return {

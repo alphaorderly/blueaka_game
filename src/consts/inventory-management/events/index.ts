@@ -13,13 +13,17 @@ dayjs.extend(timezone);
 dayjs.extend(customParseFormat);
 dayjs.tz.setDefault('Asia/Seoul');
 import { secretMidnightPartyEvent } from './secretMidnightParty';
-import { shaleFinalReportEvent } from './shaleFinalReport';
+import {
+    shaleFinalReportEvent,
+    shaleFinalReportEvent1Week,
+} from './shaleFinalReport';
 import { hyakayoriSwimsuitEvent } from './HyakayoriSwimsuit';
 import { gentleTheOutsideStrongTheInsideEvent } from './gentleTheOutsideStrongTheInside';
 
 export const AVAILABLE_EVENTS: EventData[] = [
     secretMidnightPartyEvent,
     shaleFinalReportEvent,
+    shaleFinalReportEvent1Week,
     hyakayoriSwimsuitEvent,
     gentleTheOutsideStrongTheInsideEvent,
 ];
