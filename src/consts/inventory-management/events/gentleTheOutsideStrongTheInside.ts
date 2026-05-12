@@ -4,8 +4,8 @@ export const gentleTheOutsideStrongTheInsideEvent: EventData = {
     id: 'gentle-the-outside-strong-the-inside',
     name: '오욕내강',
     description: '숨겨진 물건들을 찾아보세요!',
-    startDate: null,
-    endDate: null,
+    startDate: '2026-05-12 11:00',
+    endDate: '2026-05-26 11:00',
     caseOptions: [
         {
             value: 'case1',
