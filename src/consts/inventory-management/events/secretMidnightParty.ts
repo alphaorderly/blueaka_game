@@ -4,8 +4,8 @@ export const secretMidnightPartyEvent: EventData = {
     id: 'secret-midnight-party',
     name: '비밀의 미드나잇 파티, 종이 울리는 술래잡기',
     description: '숨겨진 물건들을 찾아보세요!',
-    startDate: '2026-07-14',
-    endDate: '2026-07-28',
+    startDate: '2026-07-14 11:00',
+    endDate: '2026-07-28 11:00',
     caseOptions: [
         {
             value: 'case1',
