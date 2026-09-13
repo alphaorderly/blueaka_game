@@ -8,7 +8,6 @@ import {
 } from '@/types/inventory-management/inventory';
 import {
     AVAILABLE_EVENTS,
-    DEFAULT_EVENT_ID,
     getDefaultEvent,
 } from '@/consts/inventory-management/events';
 import { InventoryStateContext } from './InventoryStateContext';
@@ -26,7 +25,7 @@ export interface InventoryState {
 const defaultEvent = getDefaultEvent();
 
 const DEFAULT_INVENTORY_STATE: InventoryState = {
-    selectedEvent: DEFAULT_EVENT_ID,
+    selectedEvent: defaultEvent.id,
     selectedCase: defaultEvent.caseOptions[0]?.value || 'case1',
     caseOptions: defaultEvent.caseOptions,
     openedCells: [],
@@ -262,7 +261,7 @@ const useCreateInventoryState = () => {
                 return {
                     ...prev,
                     customEvents: newCustomEvents,
-                    selectedEvent: DEFAULT_EVENT_ID,
+                    selectedEvent: fallbackEvent.id,
                     caseOptions: fallbackEvent.caseOptions,
                     selectedCase:
                         fallbackEvent.caseOptions[0]?.value || 'case1',
