@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     InventoryObject,
     GridPosition,
@@ -24,18 +24,6 @@ interface UseProbabilityCalculationResult {
     lastCalculationTime: number | null;
 }
 
-interface WorkerMessage {
-    id: string;
-    objects: InventoryObject[];
-    blockedCells: GridPosition[];
-    hitCells: GridPosition[];
-    placedObjects?: {
-        w: number;
-        h: number;
-        cells: GridPosition[];
-    }[];
-}
-
 interface WorkerResponse {
     id: string;
     probabilities: number[][];
@@ -44,188 +32,92 @@ interface WorkerResponse {
     calculationTime: number;
 }
 
-export function useProbabilityCalculation({
+const initialResult: UseProbabilityCalculationResult = {
+    probabilities: [],
+    objectProbabilities: [],
+    isCalculating: false,
+    error: null,
+    lastCalculationTime: null,
+};
+const sortCells = (cells: GridPosition[]) =>
+    [...cells].sort((a, b) => a.x - b.x || a.y - b.y);
+
+export const useProbabilityCalculation = ({
     objects,
     blockedCells,
     hitCells = [],
     placedObjects = [],
     enabled = true,
-}: UseProbabilityCalculationProps): UseProbabilityCalculationResult {
-    const [probabilities, setProbabilities] = useState<number[][]>([]);
-    const [objectProbabilities, setObjectProbabilities] = useState<
-        number[][][]
-    >([]);
-    const [isCalculating, setIsCalculating] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [lastCalculationTime, setLastCalculationTime] = useState<
-        number | null
-    >(null);
-
-    const workerRef = useRef<Worker | null>(null);
-    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-    const currentRequestId = useRef<string | null>(null);
-
-    const resultCache = useRef<
-        Map<
-            string,
-            {
-                probabilities: number[][];
-                objectProbabilities: number[][][];
-                calculationTime: number;
-            }
-        >
-    >(new Map());
-
-    const inputKey = useMemo(() => {
-        const objectsKey = [...objects]
-            .sort((a, b) => {
-                if (a.w !== b.w) return a.w - b.w;
-                if (a.h !== b.h) return a.h - b.h;
-                return a.count - b.count;
-            })
-            .map((obj) => `${obj.w}x${obj.h}:${obj.count}`)
-            .join(',');
-        const blockedKey = [...blockedCells]
-            .map((cell) => `${cell.x},${cell.y}`)
-            .sort()
-            .join('|');
-        const hitKey = [...hitCells]
-            .map((cell) => `${cell.x},${cell.y}`)
-            .sort()
-            .join('|');
-        const placedKey = placedObjects
-            .map((obj) =>
-                obj.cells
-                    .map((cell) => `${cell.x},${cell.y}`)
-                    .sort()
-                    .join('|')
-            )
-            .sort()
-            .join(';');
-        return `${objectsKey}#${blockedKey}#${hitKey}#${placedKey}`;
-    }, [objects, blockedCells, hitCells, placedObjects]);
+}: UseProbabilityCalculationProps): UseProbabilityCalculationResult => {
+    const [result, setResult] = useState(initialResult);
+    const cache = useRef(new Map<string, UseProbabilityCalculationResult>());
+    const lastStarted = useRef(-Infinity);
+    // Type order is significant: objectProbabilities uses the same indices.
+    const inputKey = JSON.stringify({
+        objects: objects.map(({ w, h, count }) => ({ w, h, count })),
+        blockedCells: sortCells(blockedCells),
+        hitCells: sortCells(hitCells),
+        placedObjects: placedObjects
+            .map(({ w, h, cells }) => ({ w, h, cells: sortCells(cells) }))
+            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+    });
+    const hasObjects = objects.length > 0;
 
     useEffect(() => {
-        workerRef.current = new Worker('/probabilityWorker.js');
-
-        workerRef.current.onmessage = (e: MessageEvent<WorkerResponse>) => {
-            const {
-                id,
-                probabilities: workerProbabilities,
-                objectProbabilities: workerObjectProbabilities,
-                error,
-                calculationTime,
-            } = e.data;
-
-            if (id === currentRequestId.current) {
-                setIsCalculating(false);
-
-                if (error) {
-                    setError(error);
-                    setProbabilities([]);
-                    setObjectProbabilities([]);
-                    setLastCalculationTime(null);
-                } else {
-                    resultCache.current.set(inputKey, {
-                        probabilities: workerProbabilities,
-                        objectProbabilities: workerObjectProbabilities || [],
-                        calculationTime,
-                    });
-
-                    if (resultCache.current.size > 50) {
-                        const firstKey = resultCache.current
-                            .keys()
-                            .next().value;
-                        if (firstKey) {
-                            resultCache.current.delete(firstKey);
-                        }
+        if (!enabled || !hasObjects) return setResult(initialResult);
+        const cached = cache.current.get(inputKey);
+        if (cached) return setResult(cached);
+        let worker: Worker | undefined;
+        let active = true;
+        const fail = (error = 'Worker execution failed') => {
+            if (active) setResult({ ...initialResult, error });
+            worker?.terminate();
+        };
+        setResult((previous) => ({
+            ...previous,
+            isCalculating: true,
+            error: null,
+        }));
+        const start = () => {
+            lastStarted.current = performance.now();
+            try {
+                worker = new Worker('/probabilityWorker.js');
+                worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
+                    if (!active || data.id !== inputKey) return;
+                    if (data.error) return fail(data.error);
+                    const next = {
+                        ...initialResult,
+                        probabilities: data.probabilities,
+                        objectProbabilities: data.objectProbabilities || [],
+                        lastCalculationTime: data.calculationTime,
+                    };
+                    cache.current.set(inputKey, next);
+                    if (cache.current.size > 50) {
+                        const first = cache.current.keys().next().value;
+                        if (first !== undefined) cache.current.delete(first);
                     }
-
-                    setProbabilities(workerProbabilities);
-                    setObjectProbabilities(workerObjectProbabilities || []);
-                    setLastCalculationTime(calculationTime);
-                    setError(null);
-                }
-
-                currentRequestId.current = null;
+                    setResult(next);
+                    worker?.terminate();
+                };
+                worker.onerror = () => fail();
+                worker.postMessage({ id: inputKey, ...JSON.parse(inputKey) });
+            } catch (error) {
+                fail(error instanceof Error ? error.message : undefined);
             }
         };
-
-        workerRef.current.onerror = () => {
-            setError('Worker execution failed');
-            setIsCalculating(false);
-            currentRequestId.current = null;
-        };
-
+        // First/isolated requests and cache hits are immediate. Only rapid input
+        // changes wait; cleanup cancels both queued and running stale requests.
+        const delay = Math.max(
+            0,
+            150 - (performance.now() - lastStarted.current)
+        );
+        const timeout = delay > 0 ? setTimeout(start, delay) : undefined;
+        if (delay === 0) start();
         return () => {
-            if (workerRef.current) {
-                workerRef.current.terminate();
-            }
+            active = false;
+            clearTimeout(timeout);
+            worker?.terminate();
         };
-    }, [inputKey]);
-
-    const calculateAsync = useCallback(() => {
-        if (!enabled || objects.length === 0 || !workerRef.current) {
-            setProbabilities([]);
-            setObjectProbabilities([]);
-            setIsCalculating(false);
-            setError(null);
-            setLastCalculationTime(null);
-            return;
-        }
-
-        const cached = resultCache.current.get(inputKey);
-        if (cached) {
-            setProbabilities(cached.probabilities);
-            setObjectProbabilities(cached.objectProbabilities);
-            setLastCalculationTime(cached.calculationTime);
-            setIsCalculating(false);
-            setError(null);
-            return;
-        }
-
-        if (currentRequestId.current) {
-            currentRequestId.current = null;
-        }
-
-        const requestId = `calc-${Date.now()}-${Math.random()}`;
-        currentRequestId.current = requestId;
-
-        setIsCalculating(true);
-        setError(null);
-
-        const message: WorkerMessage = {
-            id: requestId,
-            objects,
-            blockedCells,
-            hitCells,
-            placedObjects,
-        };
-
-        workerRef.current.postMessage(message);
-    }, [objects, blockedCells, hitCells, placedObjects, enabled, inputKey]);
-
-    useEffect(() => {
-        if (debounceTimeout.current) {
-            clearTimeout(debounceTimeout.current);
-        }
-
-        debounceTimeout.current = setTimeout(() => {
-            calculateAsync();
-        }, 150);
-
-        return () => {
-            if (debounceTimeout.current) {
-                clearTimeout(debounceTimeout.current);
-            }
-        };
-    }, [inputKey, calculateAsync]);
-
-    return {
-        probabilities,
-        objectProbabilities,
-        isCalculating,
-        error,
-        lastCalculationTime,
-    };
-}
+    }, [inputKey, enabled, hasObjects]);
+    return result;
+};
