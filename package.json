@@ -10,6 +10,7 @@
         "preview": "vite preview",
         "prepare": "husky",
         "test-once": "vitest run && node --test scripts/probability.check.mjs",
+        "benchmark-probability": "node scripts/benchmark-probability.mjs",
         "test": "vitest --watch",
         "commitlint": "commitlint --edit"
     },
