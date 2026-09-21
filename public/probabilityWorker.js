@@ -1,3 +1,5 @@
+importScripts('./exactProbability.js');
+
 // Probability worker entrypoint. Balances exact enumeration and Monte Carlo sampling
 // to return placement probabilities for a 9x5 grid while keeping accuracy intact.
 const GRID_WIDTH = 9;
@@ -158,6 +160,14 @@ function calculateProbabilities(
 ) {
     hitCells = hitCells || [];
     placedObjects = placedObjects || [];
+
+    const exact = self.calculateFrontierProbabilities(
+        objects,
+        blockedCells,
+        hitCells,
+        placedObjects
+    );
+    if (exact) return exact;
 
     console.log('[ProbabilityWorker] Starting calculation with:', {
         objects: objects.map((obj) => `${obj.w}x${obj.h}(${obj.count})`),
