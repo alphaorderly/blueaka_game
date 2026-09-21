@@ -7,6 +7,9 @@ import {
 import { isCellOpened, isCellOccupied } from '@/utils/inventory/gridUtils';
 import { GRID_HEIGHT, GRID_WIDTH } from '@/consts/inventory-management/events';
 
+// Exact counts still accumulate floating-point round-off in their marginals.
+const TIE_TOLERANCE = 1e-12;
+
 export const useProbabilityRankings = (
     probabilities: number[][],
     openedCells: GridPosition[],
@@ -33,13 +36,13 @@ export const useProbabilityRankings = (
         const highest =
             probabilityList.length > 0 ? probabilityList[0].prob : 0;
         const highestCells = probabilityList.filter(
-            (cell) => cell.prob === highest
+            (cell) => highest - cell.prob <= TIE_TOLERANCE
         );
 
-        const secondHighest =
-            probabilityList.find((cell) => cell.prob < highest)?.prob || 0;
-        const secondHighestCells = probabilityList
-            .filter((cell) => cell.prob === secondHighest)
+        const lowerCells = probabilityList.slice(highestCells.length);
+        const secondHighest = lowerCells[0]?.prob || 0;
+        const secondHighestCells = lowerCells
+            .filter((cell) => secondHighest - cell.prob <= TIE_TOLERANCE)
             .slice(0, 2);
 
         return { highestCells, secondHighestCells };
