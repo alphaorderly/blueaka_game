@@ -195,6 +195,29 @@ for (let seed = 0; seed < 48; seed++) {
         assertMarginals(result.probabilities.flat(), total);
     });
 }
+test('a blocked fixed placement still satisfies its required hit', () => {
+    const request = {
+        objects: [{ w: 1, h: 1, count: 1 }],
+        blockedCells: [{ x: 0, y: 0 }],
+        hitCells: [{ x: 0, y: 0 }],
+        placedObjects: [
+            { w: 1, h: 1, cells: [{ x: 0, y: 0 }] },
+        ],
+    };
+    const result = run(request);
+    assert.equal(result.probabilities[0][0], 0);
+    assert.ok(Math.abs(result.probabilities[0][1] - 1 / 44) < 1e-12);
+    assert.ok(
+        Math.abs(result.probabilities.flat().reduce((a, b) => a + b, 0) - 1) <
+            1e-12
+    );
+    assertMarginals(
+        result.objectProbabilities[0].flat(),
+        result.probabilities.flat()
+    );
+    const withoutFixed = run({ ...request, placedObjects: [] });
+    assert.ok(withoutFixed.probabilities.flat().every((p) => p === 0));
+});
 test('large custom rectangles, empty and impossible inputs', () => {
     assert.equal(
         run({ objects: [{ w: 9, h: 5, count: 1 }] })

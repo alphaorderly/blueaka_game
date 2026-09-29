@@ -16,7 +16,7 @@ const calculateFrontierProbabilities = (
         placedObjects.flatMap(({ cells }) => cells.map(({ x, y }) => x * 5 + y))
     );
     const hits = new Set(hitCells.map(({ x, y }) => x * 5 + y));
-    if ([...hits].some((p) => blocked.has(p))) return empty;
+    if ([...hits].some((p) => blocked.has(p) && !fixed.has(p))) return empty;
     const unavailable = new Set([...blocked, ...fixed]);
     const powers = [1, 10, 100, 1000, 10000];
     let radix = 1;
