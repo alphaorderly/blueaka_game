@@ -1,67 +1,76 @@
-import type { ReactNode } from 'react';
+import { Link, NavLink } from 'react-router';
 import { Github, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/theme/theme';
 import { cn } from '@/lib/utils';
-import { MobileNav } from './MobileNav';
+import { NAV_ITEMS } from '../nav-items';
 
-const HeaderThemeToggle = ({ className }: { className?: string }) => {
+const ThemeToggle = () => {
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
 
     return (
         <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             onClick={toggleTheme}
-            className={cn(
-                'text-muted-foreground hover:text-foreground',
-                className
-            )}
-            aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            aria-label={isDark ? '라이트 모드' : '다크 모드'}
+            title={isDark ? '라이트 모드' : '다크 모드'}
         >
-            {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+            {isDark ? <Sun /> : <Moon />}
         </Button>
     );
 };
 
-interface AppHeaderProps {
-    actions?: ReactNode;
-}
-
-const AppHeader = ({ actions }: AppHeaderProps) => {
+const AppHeader = () => {
     return (
-        <header className="pointer-events-none flex justify-center px-4 py-4 pb-0 sm:px-6 lg:px-10">
-            <div className="border-border/60 bg-background/90 pointer-events-auto mx-auto flex h-14 w-full max-w-7xl items-center gap-3 rounded-xl border px-4 sm:h-16 sm:px-5">
-                <MobileNav />
-
-                <div className="flex flex-1 flex-col gap-0.5">
-                    <span className="text-primary/80 text-xs font-semibold tracking-[0.28em] uppercase">
-                        BlueAka Tools
+        <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
+            <div className="mx-auto flex h-12 w-full max-w-[1180px] items-stretch gap-5 px-4 sm:gap-8 sm:px-6">
+                <Link
+                    to="/"
+                    className="flex shrink-0 items-center gap-2.5"
+                    aria-label="홈"
+                >
+                    <span
+                        aria-hidden
+                        className="skew-mark bg-primary block h-[15px] w-[9px] rounded-[1px]"
+                    />
+                    <span className="text-[13px] font-semibold tracking-[-0.01em]">
+                        재고 관리
                     </span>
-                    <span className="text-foreground text-sm font-semibold sm:text-base">
-                        블루아카이브 종합 도구
-                    </span>
-                </div>
+                </Link>
 
-                <HeaderThemeToggle className="md:hidden" />
+                <nav className="flex items-stretch gap-1">
+                    {NAV_ITEMS.map((item) => (
+                        <NavLink
+                            key={item.href}
+                            to={item.href}
+                            className={({ isActive }) =>
+                                cn(
+                                    'relative flex items-center px-2 text-[13px] font-medium transition-colors',
+                                    'after:absolute after:inset-x-2 after:-bottom-px after:h-[2px] after:rounded-full after:transition-colors',
+                                    isActive
+                                        ? 'text-foreground after:bg-primary'
+                                        : 'text-muted-foreground hover:text-foreground after:bg-transparent'
+                                )
+                            }
+                        >
+                            {item.title}
+                        </NavLink>
+                    ))}
+                </nav>
 
-                <div className="hidden items-center gap-2 md:flex">
-                    {actions}
-                    <HeaderThemeToggle />
-                    <Button
-                        asChild
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                    >
+                <div className="ml-auto flex items-center gap-0.5">
+                    <ThemeToggle />
+                    <Button asChild variant="ghost" size="icon-sm">
                         <a
                             href="https://github.com/alphaorderly/blueaka_game"
                             target="_blank"
                             rel="noreferrer"
-                            aria-label="alphaorderly/blueaka_game GitHub 저장소 열기"
+                            aria-label="GitHub"
+                            title="GitHub"
                         >
-                            <Github className="size-6" />
+                            <Github />
                         </a>
                     </Button>
                 </div>

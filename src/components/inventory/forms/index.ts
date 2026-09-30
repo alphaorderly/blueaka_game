@@ -1,2 +1,2 @@
-export { EventSelection } from './EventSelection';
-export { SimpleEventSelection } from './SimpleEventSelection';
+export { EventPicker } from './EventPicker';
+export { EventSchedule } from './EventSchedule';

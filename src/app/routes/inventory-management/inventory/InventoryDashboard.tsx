@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
+import { RotateCcw, X } from 'lucide-react';
 import type {
     InventoryObject,
     GridPosition,
     PlacedObject,
     PlacementMode,
 } from '@/types/inventory-management/inventory';
-import { useInventory } from '@/hooks/inventory';
 import {
+    useInventory,
     useObjectTypeColors,
     useProbabilityCalculation,
     useProbabilityRankings,
@@ -20,14 +17,8 @@ import {
     isValidPlacement,
 } from '@/utils/inventory/gridUtils';
 import { cn } from '@/lib/utils';
-import { CardDescription, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { EventSelection } from '@/components/inventory/forms/EventSelection';
-import { InventoryGrid } from '@/components/inventory';
-import { ProbabilityResultsGrid } from '@/components/inventory/visualization/ProbabilityResultsGrid';
 import { Button } from '@/components/ui/button';
-import { SettingsModal } from '@/components/inventory/settings/SettingsModal';
-import { HeadedCard } from '@/components/ui/HeadedCard';
+import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
 import {
     Dialog,
     DialogContent,
@@ -36,21 +27,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { RefreshCcw, RotateCcw, Settings2 } from 'lucide-react';
+import { EventPicker } from '@/components/inventory/forms/EventPicker';
+import { EventSchedule } from '@/components/inventory/forms/EventSchedule';
+import { ObjectList } from '@/components/inventory/ObjectList';
+import { PredictionBoard } from '@/components/inventory/PredictionBoard';
+import { InventoryPlacementIndicator } from '@/components/inventory/PlacementModeIndicator';
+import { SettingsModal } from '@/components/inventory/settings/SettingsModal';
+import {
+    cellName,
+    objectColorClass,
+    objectColorVars,
+} from '@/components/inventory/board/boardUtils';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(customParseFormat);
-dayjs.tz.setDefault('Asia/Seoul');
-
-const EVENT_TIME_FORMAT = 'YYYY-MM-DD HH:mm';
-
-type EventStatus = {
-    eventName: string;
-    statusText: string;
-    detailText: string;
-    highlight: boolean;
-};
+const LegendSwatch = ({ className }: { className: string }) => (
+    <span aria-hidden className={cn('size-3 rounded-[3px]', className)} />
+);
 
 const InventoryDashboard = () => {
     const {
@@ -96,8 +87,7 @@ const InventoryDashboard = () => {
 
     const { objectTypeColors } = useObjectTypeColors(currentObjects);
 
-    const handleBoardReset = () => {
-        clearGridState();
+    const resetInteraction = () => {
         setPlacementMode('opened');
         setSelectedObjectIndex(-1);
         setPreviewCells([]);
@@ -105,13 +95,14 @@ const InventoryDashboard = () => {
         setProbabilityFilter(null);
     };
 
+    const handleBoardReset = () => {
+        clearGridState();
+        resetInteraction();
+    };
+
     const handleResetInventoryDefaults = () => {
         resetToDefaults();
-        setPlacementMode('opened');
-        setSelectedObjectIndex(-1);
-        setPreviewCells([]);
-        setHoveredObjectId(null);
-        setProbabilityFilter(null);
+        resetInteraction();
     };
 
     useEffect(() => {
@@ -119,8 +110,7 @@ const InventoryDashboard = () => {
             (option) => option.value === selectedCase
         );
         if (caseData) {
-            const objects = caseData.objects.map((obj) => ({ ...obj }));
-            setCurrentObjects(objects);
+            setCurrentObjects(caseData.objects.map((obj) => ({ ...obj })));
             setPlacementMode('opened');
             setSelectedObjectIndex(-1);
             setPreviewCells([]);
@@ -161,15 +151,9 @@ const InventoryDashboard = () => {
         enabled: currentObjects.length > 0,
     });
 
-    // Select the appropriate probabilities based on filter
     const displayProbabilities = useMemo(() => {
-        if (probabilityFilter === null) {
-            return probabilities;
-        }
-        if (objectProbabilities && objectProbabilities[probabilityFilter]) {
-            return objectProbabilities[probabilityFilter];
-        }
-        return probabilities;
+        if (probabilityFilter === null) return probabilities;
+        return objectProbabilities?.[probabilityFilter] ?? probabilities;
     }, [probabilities, objectProbabilities, probabilityFilter]);
 
     const { highestCells, secondHighestCells } = useProbabilityRankings(
@@ -178,111 +162,9 @@ const InventoryDashboard = () => {
         placedObjects
     );
 
-    const handleCellClick = (x: number, y: number) => {
-        if (placementMode === 'opened') {
-            const hasPlacedObject = placedObjects.some((obj) =>
-                obj.cells.some((cell) => cell.x === x && cell.y === y)
-            );
-            if (hasPlacedObject) {
-                return;
-            }
-
-            const cellIndex = openedCells.findIndex(
-                (cell) => cell.x === x && cell.y === y
-            );
-            if (cellIndex >= 0) {
-                const newOpenedCells = openedCells.filter(
-                    (_, index) => index !== cellIndex
-                );
-                setOpenedCells(newOpenedCells);
-            } else {
-                const newOpenedCells = [...openedCells, { x, y }];
-                setOpenedCells(newOpenedCells);
-            }
-        } else if (placementMode === 'placing' && selectedObjectIndex >= 0) {
-            const previewCellsResult = generatePreviewCells(
-                x,
-                y,
-                selectedObjectIndex,
-                currentObjects,
-                placementOrientation
-            );
-            if (
-                isValidPlacement(previewCellsResult, placedObjects) &&
-                previewCellsResult.length > 0
-            ) {
-                const obj = currentObjects[selectedObjectIndex];
-                const width =
-                    placementOrientation === 'horizontal' ? obj.w : obj.h;
-                const height =
-                    placementOrientation === 'horizontal' ? obj.h : obj.w;
-                const newPlacedObject: PlacedObject = {
-                    id: `obj-${selectedObjectIndex}-${Date.now()}`,
-                    objectIndex: selectedObjectIndex,
-                    startX: x,
-                    startY: y,
-                    width,
-                    height,
-                    cells: previewCellsResult,
-                };
-                const newPlacedObjects = [...placedObjects, newPlacedObject];
-                setPlacedObjects(newPlacedObjects);
-                setPlacementMode('opened');
-                setSelectedObjectIndex(-1);
-                setPreviewCells([]);
-            }
-        }
-    };
-
-    const handleCellHover = (x: number, y: number) => {
-        if (placementMode === 'placing' && selectedObjectIndex >= 0) {
-            const cells = generatePreviewCells(
-                x,
-                y,
-                selectedObjectIndex,
-                currentObjects,
-                placementOrientation
-            );
-            setPreviewCells(cells);
-        }
-    };
-
-    const handleCellTouch = (x: number, y: number) => {
-        if (placementMode === 'placing' && selectedObjectIndex >= 0) {
-            const cells = generatePreviewCells(
-                x,
-                y,
-                selectedObjectIndex,
-                currentObjects,
-                placementOrientation
-            );
-            setPreviewCells(cells);
-        }
-    };
-
-    const handleCellLeave = () => {
-        if (placementMode === 'placing') {
-            setPreviewCells([]);
-        }
-    };
-
-    const startPlacing = (objectIndex: number) => {
-        setPlacementMode('placing');
-        setSelectedObjectIndex(objectIndex);
-        setPreviewCells([]);
-    };
-
     const cancelPlacement = () => {
         setPlacementMode('opened');
         setSelectedObjectIndex(-1);
-        setPreviewCells([]);
-    };
-
-    const removeObject = (objectId: string) => {
-        const newPlacedObjects = placedObjects.filter(
-            (obj) => obj.id !== objectId
-        );
-        setPlacedObjects(newPlacedObjects);
         setPreviewCells([]);
     };
 
@@ -290,322 +172,356 @@ const InventoryDashboard = () => {
         setPlacementOrientation((prev) =>
             prev === 'horizontal' ? 'vertical' : 'horizontal'
         );
+        setPreviewCells([]);
     };
 
-    const eventStatuses: EventStatus[] = useMemo(() => {
-        const now = dayjs.tz();
+    const isPlacing = placementMode === 'placing' && selectedObjectIndex >= 0;
 
-        const parseDate = (value?: string | null) => {
-            if (!value) return null;
-            const parsed = dayjs.tz(value, EVENT_TIME_FORMAT, 'Asia/Seoul');
-            return parsed.isValid() ? parsed : null;
+    useEffect(() => {
+        if (!isPlacing) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.closest('input, textarea, [role="dialog"]')) return;
+            if (event.key === 'Escape') {
+                setPlacementMode('opened');
+                setSelectedObjectIndex(-1);
+                setPreviewCells([]);
+            }
+            if (event.key === 'r' || event.key === 'R') {
+                setPlacementOrientation((prev) =>
+                    prev === 'horizontal' ? 'vertical' : 'horizontal'
+                );
+                setPreviewCells([]);
+            }
         };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isPlacing]);
 
-        return availableEvents
-            .map((event) => {
-                const start = parseDate(event.startDate);
-                const end = parseDate(event.endDate);
+    const handleCellClick = (x: number, y: number) => {
+        if (placementMode === 'opened') {
+            const hasPlacedObject = placedObjects.some((obj) =>
+                obj.cells.some((cell) => cell.x === x && cell.y === y)
+            );
+            if (hasPlacedObject) return;
 
-                if (!start && !end) {
-                    return null;
-                }
+            const cellIndex = openedCells.findIndex(
+                (cell) => cell.x === x && cell.y === y
+            );
+            setOpenedCells(
+                cellIndex >= 0
+                    ? openedCells.filter((_, index) => index !== cellIndex)
+                    : [...openedCells, { x, y }]
+            );
+        } else if (isPlacing) {
+            const cells = generatePreviewCells(
+                x,
+                y,
+                selectedObjectIndex,
+                currentObjects,
+                placementOrientation
+            );
+            if (cells.length > 0 && isValidPlacement(cells, placedObjects)) {
+                const obj = currentObjects[selectedObjectIndex];
+                const horizontal = placementOrientation === 'horizontal';
+                const newPlacedObject: PlacedObject = {
+                    id: `obj-${selectedObjectIndex}-${Date.now()}`,
+                    objectIndex: selectedObjectIndex,
+                    startX: x,
+                    startY: y,
+                    width: horizontal ? obj.w : obj.h,
+                    height: horizontal ? obj.h : obj.w,
+                    cells,
+                };
+                setPlacedObjects([...placedObjects, newPlacedObject]);
+                cancelPlacement();
+            }
+        }
+    };
 
-                if (start && now.isBefore(start)) {
-                    const hoursDiff = start.diff(now, 'hour');
-                    const daysRemaining = Math.max(
-                        1,
-                        Math.ceil(hoursDiff / 24)
-                    );
+    const handleCellHover = (x: number, y: number) => {
+        if (!isPlacing) return;
+        setPreviewCells(
+            generatePreviewCells(
+                x,
+                y,
+                selectedObjectIndex,
+                currentObjects,
+                placementOrientation
+            )
+        );
+    };
 
-                    return {
-                        eventName: event.name,
-                        statusText: `${daysRemaining}일 남음`,
-                        detailText: `${start.format(EVENT_TIME_FORMAT)} 시작`,
-                        highlight: false,
-                    } satisfies EventStatus;
-                }
+    const startPlacing = (objectIndex: number) => {
+        if (isPlacing && selectedObjectIndex === objectIndex) {
+            cancelPlacement();
+            return;
+        }
+        setPlacementMode('placing');
+        setSelectedObjectIndex(objectIndex);
+        setPreviewCells([]);
+    };
 
-                if (start && (!end || now.isBefore(end))) {
-                    const rangeLabel = [start, end]
-                        .filter((date): date is dayjs.Dayjs => Boolean(date))
-                        .map((date) => date.format(EVENT_TIME_FORMAT))
-                        .join(' ~ ');
+    const removeObject = (objectId: string) => {
+        setPlacedObjects(placedObjects.filter((obj) => obj.id !== objectId));
+        setHoveredObjectId(null);
+        setPreviewCells([]);
+    };
 
-                    return {
-                        eventName: event.name,
-                        statusText: '진행중',
-                        detailText: rangeLabel || '진행중',
-                        highlight: true,
-                    } satisfies EventStatus;
-                }
-
-                if (!start && end && now.isBefore(end)) {
-                    return {
-                        eventName: event.name,
-                        statusText: '진행중',
-                        detailText: `~ ${end.format(EVENT_TIME_FORMAT)}`,
-                        highlight: true,
-                    } satisfies EventStatus;
-                }
-
-                if (end && now.isAfter(end)) {
-                    return null;
-                }
-
-                return {
-                    eventName: event.name,
-                    statusText: '일정 확인 필요',
-                    detailText: '추가 정보 필요',
-                    highlight: false,
-                } satisfies EventStatus;
-            })
-            .filter((status): status is EventStatus => Boolean(status));
-    }, [availableEvents]);
+    const filteredObject =
+        probabilityFilter !== null ? currentObjects[probabilityFilter] : null;
+    const hasBoardState = openedCells.length > 0 || placedObjects.length > 0;
 
     return (
-        <div className="space-y-8">
-            <section className="space-y-6">
-                <HeadedCard>
-                    <HeadedCard.Header className="space-y-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <CardTitle className="text-lg font-semibold">
-                                    이벤트 설정
-                                </CardTitle>
-                                <CardDescription>
-                                    이벤트와 케이스를 선택하세요.
-                                </CardDescription>
-                            </div>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setIsResetDialogOpen(true)}
-                                    className="gap-2"
-                                >
-                                    <RefreshCcw className="h-4 w-4" />
-                                    커스텀 이벤트 초기화
+        <div className="grid items-start gap-4 lg:grid-cols-[296px_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-8 lg:gap-y-5">
+            <Panel className="lg:col-start-1 lg:row-start-1">
+                <PanelBody className="space-y-4">
+                    <EventPicker
+                        events={availableEvents}
+                        cases={caseOptions}
+                        selectedEvent={selectedEvent}
+                        selectedCase={selectedCase}
+                        onEventChange={setSelectedEvent}
+                        onCaseChange={setSelectedCase}
+                    />
+                    <div className="flex items-center gap-1 border-t pt-3">
+                        <span className="text-muted-foreground mr-auto text-xs">
+                            커스텀 이벤트
+                        </span>
+                        <SettingsModal
+                            trigger={
+                                <Button variant="ghost" size="xs">
+                                    관리
                                 </Button>
-                                <SettingsModal
-                                    trigger={
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="gap-2"
-                                        >
-                                            <Settings2 className="h-4 w-4" />
-                                            커스텀 이벤트 관리
-                                        </Button>
-                                    }
-                                    customEvents={customEvents}
-                                    selectedEvent={selectedEvent}
-                                    createCustomEvent={createCustomEvent}
-                                    updateCustomEvent={updateCustomEvent}
-                                    deleteCustomEvent={deleteCustomEvent}
-                                    exportCustomEvent={exportCustomEvent}
-                                    importCustomEvent={importCustomEvent}
-                                    downloadFile={downloadFile}
-                                    addCaseToCustomEvent={addCaseToCustomEvent}
-                                    removeCaseFromCustomEvent={
-                                        removeCaseFromCustomEvent
-                                    }
-                                    updateCaseInCustomEvent={
-                                        updateCaseInCustomEvent
-                                    }
-                                    addObjectToCustomEventCase={
-                                        addObjectToCustomEventCase
-                                    }
-                                    removeObjectFromCustomEventCase={
-                                        removeObjectFromCustomEventCase
-                                    }
-                                    updateObjectInCustomEventCase={
-                                        updateObjectInCustomEventCase
-                                    }
-                                />
-                            </div>
-                        </div>
-                    </HeadedCard.Header>
-                    <HeadedCard.Content className="space-y-6">
-                        <EventSelection
+                            }
+                            customEvents={customEvents}
                             selectedEvent={selectedEvent}
-                            selectedCase={selectedCase}
-                            availableEvents={availableEvents}
-                            caseOptions={caseOptions}
-                            currentObjects={currentObjects}
-                            onEventChange={setSelectedEvent}
-                            onCaseChange={setSelectedCase}
+                            createCustomEvent={createCustomEvent}
+                            updateCustomEvent={updateCustomEvent}
+                            deleteCustomEvent={deleteCustomEvent}
+                            exportCustomEvent={exportCustomEvent}
+                            importCustomEvent={importCustomEvent}
+                            downloadFile={downloadFile}
+                            addCaseToCustomEvent={addCaseToCustomEvent}
+                            removeCaseFromCustomEvent={
+                                removeCaseFromCustomEvent
+                            }
+                            updateCaseInCustomEvent={updateCaseInCustomEvent}
+                            addObjectToCustomEventCase={
+                                addObjectToCustomEventCase
+                            }
+                            removeObjectFromCustomEventCase={
+                                removeObjectFromCustomEventCase
+                            }
+                            updateObjectInCustomEventCase={
+                                updateObjectInCustomEventCase
+                            }
                         />
-
-                        {eventStatuses.length > 0 && (
-                            <div className="space-y-2">
-                                <p className="text-muted-foreground text-xs font-semibold tracking-[0.2em] uppercase">
-                                    이벤트 일정
-                                </p>
-                                <div className="space-y-2">
-                                    {eventStatuses.map(
-                                        ({
-                                            eventName,
-                                            statusText,
-                                            detailText,
-                                            highlight,
-                                        }) => (
-                                            <div
-                                                key={eventName}
-                                                className="border-border/60 bg-muted/50 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm"
-                                            >
-                                                <div className="min-w-0 space-y-1">
-                                                    <p className="text-foreground text-sm font-semibold">
-                                                        {eventName}
-                                                    </p>
-                                                    <p className="text-muted-foreground text-xs">
-                                                        {detailText}
-                                                    </p>
-                                                </div>
-                                                <Badge
-                                                    variant={
-                                                        highlight
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                    className={cn(
-                                                        'rounded-full px-4 py-1 text-xs font-medium tracking-wide uppercase',
-                                                        highlight
-                                                            ? 'bg-primary/90 text-primary-foreground shadow'
-                                                            : 'border-border/60 bg-background/60'
-                                                    )}
-                                                >
-                                                    {statusText}
-                                                </Badge>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </HeadedCard.Content>
-                </HeadedCard>
-
-                <HeadedCard>
-                    <HeadedCard.Header className="*:border-border/60 bg-accent/20 flex flex-col gap-3 p-4 !py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <CardTitle className="text-lg font-semibold">
-                                배치 시뮬레이션 보드
-                            </CardTitle>
-                            <CardDescription>
-                                배치 상태를 한눈에 살펴보세요.
-                            </CardDescription>
-                        </div>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleBoardReset}
-                            className="gap-2"
+                            variant="ghost-danger"
+                            size="xs"
+                            onClick={() => setIsResetDialogOpen(true)}
                         >
-                            <RotateCcw className="h-4 w-4" />
-                            보드 초기화
+                            초기화
                         </Button>
-                    </HeadedCard.Header>
-                    <HeadedCard.Content>
-                        <InventoryGrid
+                    </div>
+                </PanelBody>
+            </Panel>
+
+            <Panel className="overflow-hidden lg:col-start-2 lg:row-span-3 lg:row-start-1">
+                {isPlacing ? (
+                    <InventoryPlacementIndicator
+                        selectedObjectIndex={selectedObjectIndex}
+                        currentObjects={currentObjects}
+                        color={objectTypeColors[selectedObjectIndex]}
+                        placementOrientation={placementOrientation}
+                        onToggleOrientation={toggleOrientation}
+                        onCancelPlacement={cancelPlacement}
+                    />
+                ) : (
+                    <PanelHeader
+                        title={
+                            filteredObject ? (
+                                <span className="flex items-center gap-2">
+                                    <span
+                                        className={cn(
+                                            objectColorClass,
+                                            'tabular flex size-5 items-center justify-center rounded-[4px] text-[10px]'
+                                        )}
+                                        style={objectColorVars(
+                                            objectTypeColors[probabilityFilter!]
+                                        )}
+                                    >
+                                        {probabilityFilter! + 1}
+                                    </span>
+                                    <span className="tabular">
+                                        {filteredObject.w}×{filteredObject.h}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setProbabilityFilter(null)
+                                        }
+                                        aria-label="전체 확률 보기"
+                                        className="text-faint hover:text-foreground -ml-1 cursor-pointer rounded-sm p-0.5"
+                                    >
+                                        <X className="size-3.5" />
+                                    </button>
+                                </span>
+                            ) : (
+                                '전체 확률'
+                            )
+                        }
+                        aside={
+                            <>
+                                <span
+                                    className={cn(
+                                        'tabular mr-2 flex items-center gap-1.5 text-xs',
+                                        calculationError
+                                            ? 'text-destructive'
+                                            : 'text-faint'
+                                    )}
+                                    aria-live="polite"
+                                >
+                                    {calculationError ? (
+                                        '계산 실패'
+                                    ) : isCalculating ? (
+                                        <>
+                                            <span className="bg-primary size-1.5 animate-pulse rounded-full" />
+                                            계산 중
+                                        </>
+                                    ) : lastCalculationTime !== null ? (
+                                        `${lastCalculationTime.toFixed(1)} ms`
+                                    ) : null}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={handleBoardReset}
+                                    disabled={!hasBoardState}
+                                >
+                                    <RotateCcw className="size-3.5" />
+                                    비우기
+                                </Button>
+                            </>
+                        }
+                    />
+                )}
+
+                <div className="px-3 pt-4 pb-3 sm:px-6 sm:pt-6">
+                    <div className="mx-auto max-w-[620px]">
+                        <PredictionBoard
+                            probabilities={
+                                calculationError ? [] : displayProbabilities
+                            }
+                            highestCells={highestCells}
+                            secondHighestCells={secondHighestCells}
                             openedCells={openedCells}
                             placedObjects={placedObjects}
                             previewCells={previewCells}
                             placementMode={placementMode}
                             objectTypeColors={objectTypeColors}
                             hoveredObjectId={hoveredObjectId}
+                            isStale={isCalculating}
                             onCellClick={handleCellClick}
                             onCellHover={handleCellHover}
-                            onCellTouch={handleCellTouch}
-                            onCellLeave={handleCellLeave}
+                            onCellTouch={handleCellHover}
                             onPreviewClear={() => setPreviewCells([])}
-                            currentObjects={currentObjects}
-                            remainingCounts={remainingCounts}
-                            selectedObjectIndex={selectedObjectIndex}
-                            placementOrientation={placementOrientation}
-                            onStartPlacing={startPlacing}
-                            onToggleOrientation={toggleOrientation}
-                            onCancelPlacement={cancelPlacement}
-                            onRemoveObject={removeObject}
-                            onSetHoveredObjectId={setHoveredObjectId}
-                            probabilityFilter={probabilityFilter}
-                            onProbabilityFilterChange={setProbabilityFilter}
                         />
-                    </HeadedCard.Content>
-                </HeadedCard>
-            </section>
-
-            <HeadedCard>
-                <HeadedCard.Header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <CardTitle className="text-lg font-semibold">
-                            배치 확률
-                        </CardTitle>
                     </div>
-                    {lastCalculationTime !== null &&
-                        !isCalculating &&
-                        !calculationError && (
-                            <Badge
-                                variant="outline"
-                                className="border-border/60 bg-background/60 text-muted-foreground"
-                                style={{
-                                    fontFamily: 'unifont',
-                                }}
+                </div>
+
+                <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 px-4 pb-4 text-xs sm:px-6">
+                    <span className="flex items-center gap-1.5">
+                        <LegendSwatch className="rank-platinum" />
+                        1순위
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <LegendSwatch className="rank-gold" />
+                        2순위
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <LegendSwatch className="hatched shadow-[inset_0_0_0_1px_var(--border-strong)]" />
+                        빈 칸
+                    </span>
+                    <span className="text-faint ml-auto">단위 %</span>
+                </div>
+
+                {placedObjects.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 border-t px-4 py-3 sm:px-6">
+                        {placedObjects.map((placed) => (
+                            <button
+                                key={placed.id}
+                                type="button"
+                                onClick={() => removeObject(placed.id)}
+                                onMouseEnter={() =>
+                                    setHoveredObjectId(placed.id)
+                                }
+                                onMouseLeave={() => setHoveredObjectId(null)}
+                                onFocus={() => setHoveredObjectId(placed.id)}
+                                onBlur={() => setHoveredObjectId(null)}
+                                aria-label={`${placed.objectIndex + 1}번 ${cellName(placed.startX, placed.startY)} 제거`}
+                                className="group hover:border-destructive/50 hover:bg-destructive/5 flex h-7 cursor-pointer items-center gap-1.5 rounded-md border pr-1.5 pl-1 text-xs transition-colors"
                             >
-                                {lastCalculationTime.toFixed(1)}ms
-                            </Badge>
-                        )}
-                </HeadedCard.Header>
-                <HeadedCard.Content>
-                    {isCalculating ? (
-                        <div className="border-border/60 bg-muted/30 flex h-[458px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed py-12 text-center">
-                            <div className="border-border/60 h-10 w-10 animate-spin rounded-full border-2 border-t-transparent" />
-                            <div>
-                                <p className="text-foreground font-semibold">
-                                    확률 계산 중...
-                                </p>
-                                <p className="text-muted-foreground text-sm">
-                                    복잡한 계산이 진행 중입니다. 잠시만
-                                    기다려주세요.
-                                </p>
-                            </div>
-                        </div>
-                    ) : calculationError ? (
-                        <div className="bg-destructive/10 text-destructive border-destructive/30 flex flex-col gap-3 rounded-xl border p-6 text-center shadow-sm">
-                            <p className="text-base font-semibold">계산 오류</p>
-                            <p className="text-destructive/80 text-sm">
-                                {calculationError}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <ProbabilityResultsGrid
-                                probabilities={displayProbabilities}
-                                openedCells={openedCells}
-                                placedObjects={placedObjects}
-                                highestCells={highestCells}
-                                secondHighestCells={secondHighestCells}
-                                objectTypeColors={objectTypeColors}
-                                probabilityFilter={probabilityFilter}
-                                currentObjects={currentObjects}
-                            />
-                        </div>
-                    )}
-                </HeadedCard.Content>
-            </HeadedCard>
+                                <span
+                                    className={cn(
+                                        objectColorClass,
+                                        'tabular flex size-5 items-center justify-center rounded-[4px] text-[10px] font-semibold'
+                                    )}
+                                    style={objectColorVars(
+                                        objectTypeColors[placed.objectIndex]
+                                    )}
+                                >
+                                    {placed.objectIndex + 1}
+                                </span>
+                                <span className="tabular font-medium">
+                                    {cellName(placed.startX, placed.startY)}
+                                </span>
+                                <X className="text-faint group-hover:text-destructive size-3" />
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </Panel>
+
+            <Panel className="lg:col-start-1 lg:row-start-2">
+                <PanelHeader
+                    title="오브젝트"
+                    aside={
+                        <span className="text-faint tabular text-xs">
+                            남음 / 전체
+                        </span>
+                    }
+                />
+                <PanelBody className="py-2">
+                    <ObjectList
+                        objects={currentObjects}
+                        colors={objectTypeColors}
+                        remainingCounts={remainingCounts}
+                        filter={probabilityFilter}
+                        placingIndex={isPlacing ? selectedObjectIndex : -1}
+                        onFilterChange={setProbabilityFilter}
+                        onStartPlacing={startPlacing}
+                    />
+                </PanelBody>
+            </Panel>
+
+            <div className="px-1 pt-2 lg:col-start-1 lg:row-start-3">
+                <EventSchedule events={availableEvents} />
+            </div>
 
             <Dialog
                 open={isResetDialogOpen}
                 onOpenChange={setIsResetDialogOpen}
             >
-                <DialogContent className="border-border/60 bg-card/95">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>커스텀 이벤트 초기화</DialogTitle>
                         <DialogDescription>
-                            저장된 커스텀 이벤트와 자동 저장된 상태를 모두
-                            초기화합니다. 정말 진행할까요?
+                            커스텀 이벤트와 저장된 보드 상태가 모두 삭제됩니다.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2">
+                    <DialogFooter>
                         <Button
                             variant="outline"
                             onClick={() => setIsResetDialogOpen(false)}
@@ -619,7 +535,7 @@ const InventoryDashboard = () => {
                                 setIsResetDialogOpen(false);
                             }}
                         >
-                            초기화 진행
+                            초기화
                         </Button>
                     </DialogFooter>
                 </DialogContent>
