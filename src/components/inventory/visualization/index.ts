@@ -1,1 +1,0 @@
-export { ProbabilityResultsGrid } from './ProbabilityResultsGrid';

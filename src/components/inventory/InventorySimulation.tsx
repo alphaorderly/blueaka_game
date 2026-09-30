@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Check, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import type {
     EventData,
     GridPosition,
 } from '@/types/inventory-management/inventory';
@@ -11,12 +12,17 @@ import {
     placeObjectsGuaranteed,
     type ObjectToPlace,
 } from '@/utils/inventory/objectPlacement';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { HeadedCard } from '@/components/ui/HeadedCard';
-import { RefreshCw, Eye, EyeOff, PartyPopper } from 'lucide-react';
 import { GRID_HEIGHT, GRID_WIDTH } from '@/consts/inventory-management/events';
+import { Button } from '@/components/ui/button';
+import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
+import { cn } from '@/lib/utils';
+import { Board, ObjectBlock, ShapeGlyph } from './board/Board';
+import {
+    cellName,
+    gridArea,
+    objectColorClass,
+    objectColorVars,
+} from './board/boardUtils';
 
 interface InventorySimulationProps {
     selectedEvent: EventData;
@@ -43,25 +49,35 @@ interface SimulationState {
     showSolution: boolean;
 }
 
+const emptyState: SimulationState = {
+    hiddenObjects: [],
+    revealedCells: [],
+    moves: 0,
+    isComplete: false,
+    showSolution: false,
+};
+
+const includes = (cells: GridPosition[], x: number, y: number) =>
+    cells.some((cell) => cell.x === x && cell.y === y);
+
 export const InventorySimulation = ({
     selectedEvent,
     selectedCase,
 }: InventorySimulationProps) => {
-    const [simulationState, setSimulationState] = useState<SimulationState>({
-        hiddenObjects: [],
-        revealedCells: [],
-        moves: 0,
-        isComplete: false,
-        showSolution: false,
-    });
-
-    const [objectTypeColors, setObjectTypeColors] = useState<{
-        [objectIndex: number]: ObjectTypeColor;
-    }>({});
+    const [simulationState, setSimulationState] =
+        useState<SimulationState>(emptyState);
 
     const currentCaseOption = selectedEvent.caseOptions.find(
         (option) => option.value === selectedCase
     );
+
+    const objectTypeColors = useMemo(() => {
+        const colors: { [objectIndex: number]: ObjectTypeColor } = {};
+        currentCaseOption?.objects.forEach((_, objectIndex) => {
+            colors[objectIndex] = generateColorForObjectType({}, objectIndex);
+        });
+        return colors;
+    }, [currentCaseOption]);
 
     const initializeSimulation = useCallback(() => {
         if (!currentCaseOption) return;
@@ -77,49 +93,25 @@ export const InventorySimulation = ({
 
         try {
             const placedObjects = placeObjectsGuaranteed(objectsToPlace);
-
-            const hiddenObjects: HiddenObject[] = placedObjects.map(
-                (obj): HiddenObject => ({
-                    id: obj.id,
-                    objectIndex: obj.objectIndex,
-                    startX: obj.startX,
-                    startY: obj.startY,
-                    width: obj.width,
-                    height: obj.height,
-                    cells: obj.cells,
-                    found: false,
-                    isRotated: obj.isRotated ?? false,
-                })
-            );
-
-            const newObjectTypeColors: {
-                [objectIndex: number]: ObjectTypeColor;
-            } = {};
-
-            currentCaseOption.objects.forEach((_, objectIndex) => {
-                newObjectTypeColors[objectIndex] = generateColorForObjectType(
-                    {},
-                    objectIndex
-                );
-            });
-
-            setObjectTypeColors(newObjectTypeColors);
             setSimulationState({
-                hiddenObjects,
-                revealedCells: [],
-                moves: 0,
-                isComplete: false,
-                showSolution: false,
+                ...emptyState,
+                hiddenObjects: placedObjects.map(
+                    (obj): HiddenObject => ({
+                        id: obj.id,
+                        objectIndex: obj.objectIndex,
+                        startX: obj.startX,
+                        startY: obj.startY,
+                        width: obj.width,
+                        height: obj.height,
+                        cells: obj.cells,
+                        found: false,
+                        isRotated: obj.isRotated ?? false,
+                    })
+                ),
             });
         } catch (error) {
             console.error('InventorySimulation placement failed:', error);
-            setSimulationState({
-                hiddenObjects: [],
-                revealedCells: [],
-                moves: 0,
-                isComplete: false,
-                showSolution: false,
-            });
+            setSimulationState(emptyState);
         }
     }, [currentCaseOption]);
 
@@ -129,128 +121,33 @@ export const InventorySimulation = ({
 
     const handleCellClick = (x: number, y: number) => {
         if (simulationState.isComplete) return;
-
-        const isAlreadyRevealed = simulationState.revealedCells.some(
-            (cell) => cell.x === x && cell.y === y
-        );
-        if (isAlreadyRevealed) return;
+        if (includes(simulationState.revealedCells, x, y)) return;
 
         const newRevealedCells = [...simulationState.revealedCells, { x, y }];
-        let newHiddenObjects = [...simulationState.hiddenObjects];
+        let newHiddenObjects = simulationState.hiddenObjects;
 
         const foundObject = simulationState.hiddenObjects.find(
-            (obj) =>
-                !obj.found &&
-                obj.cells.some((cell) => cell.x === x && cell.y === y)
+            (obj) => !obj.found && includes(obj.cells, x, y)
         );
 
         if (foundObject) {
             newHiddenObjects = newHiddenObjects.map((obj) =>
                 obj.id === foundObject.id ? { ...obj, found: true } : obj
             );
-
             foundObject.cells.forEach((cell) => {
-                if (
-                    !newRevealedCells.some(
-                        (c) => c.x === cell.x && c.y === cell.y
-                    )
-                ) {
+                if (!includes(newRevealedCells, cell.x, cell.y)) {
                     newRevealedCells.push(cell);
                 }
             });
         }
-
-        const isComplete = newHiddenObjects.every((obj) => obj.found);
 
         setSimulationState({
             ...simulationState,
             hiddenObjects: newHiddenObjects,
             revealedCells: newRevealedCells,
             moves: simulationState.moves + 1,
-            isComplete,
+            isComplete: newHiddenObjects.every((obj) => obj.found),
         });
-    };
-
-    const getCellState = (x: number, y: number) => {
-        const isRevealed = simulationState.revealedCells.some(
-            (cell) => cell.x === x && cell.y === y
-        );
-        const hiddenObject = simulationState.hiddenObjects.find((obj) =>
-            obj.cells.some((cell) => cell.x === x && cell.y === y)
-        );
-
-        return {
-            isRevealed,
-            hiddenObject,
-            isObjectStart:
-                hiddenObject?.startX === x && hiddenObject?.startY === y,
-        };
-    };
-
-    const getCellStyles = (x: number, y: number) => {
-        const { isRevealed, hiddenObject } = getCellState(x, y);
-
-        if (isRevealed && hiddenObject) {
-            const colorData = objectTypeColors[hiddenObject.objectIndex];
-            if (colorData) {
-                return {
-                    backgroundColor: colorData.lightBg,
-                    color: colorData.lightText,
-                    borderColor: colorData.lightText,
-                    boxShadow: `inset 0 0 0 1px ${colorData.lightText}`,
-                    '--dark-bg': colorData.darkBg,
-                    '--dark-text': colorData.darkText,
-                    '--dark-border': colorData.darkBg,
-                } as React.CSSProperties;
-            }
-        }
-
-        return {};
-    };
-
-    const getCellClassName = (x: number, y: number) => {
-        const { isRevealed, hiddenObject } = getCellState(x, y);
-        const baseClass =
-            'relative flex min-h-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-md border border-border/70 bg-background/90 text-xs font-semibold shadow-sm transition hover:-translate-y-[1px] hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-white/15 dark:bg-background/40 dark:text-muted-foreground';
-
-        if (
-            simulationState.showSolution &&
-            hiddenObject &&
-            !hiddenObject.found
-        ) {
-            return `${baseClass} bg-rose-200/90 text-rose-900 ring-2 ring-rose-400 dark:bg-rose-500/30 dark:text-rose-100 dark:ring-rose-400`;
-        }
-
-        if (isRevealed) {
-            if (hiddenObject) {
-                const borderStyle = 'border-2 border-solid';
-
-                return `${baseClass} ${borderStyle} dark:bg-[var(--dark-bg)] dark:text-[var(--dark-text)] dark:border-[var(--dark-border)] dark:shadow-[0_0_0_1px_var(--dark-border)_inset]`;
-            }
-
-            return `${baseClass} bg-muted text-muted-foreground dark:bg-muted/25 dark:text-muted-foreground dark:border-white/10`;
-        }
-
-        return baseClass;
-    };
-
-    const renderCellContent = (x: number, y: number) => {
-        const { isRevealed, hiddenObject, isObjectStart } = getCellState(x, y);
-
-        if (
-            simulationState.showSolution &&
-            hiddenObject &&
-            !hiddenObject.found &&
-            isObjectStart
-        ) {
-            return `${hiddenObject.objectIndex + 1}`;
-        }
-
-        if (isRevealed && hiddenObject && isObjectStart) {
-            return `${hiddenObject.objectIndex + 1}`;
-        }
-
-        return '';
     };
 
     const toggleSolution = () => {
@@ -260,126 +157,206 @@ export const InventorySimulation = ({
         }));
     };
 
-    if (!currentCaseOption) {
-        return <div>선택된 케이스를 찾을 수 없습니다.</div>;
-    }
+    if (!currentCaseOption) return null;
+
+    const { hiddenObjects, revealedCells, moves, isComplete, showSolution } =
+        simulationState;
 
     return (
-        <HeadedCard>
-            <HeadedCard.Header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                    <h2 className="text-foreground text-xl font-semibold">
-                        {selectedEvent.name}
-                    </h2>
-                    <p className="text-muted-foreground text-sm">
-                        {currentCaseOption.label}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={toggleSolution}
-                        className="gap-2"
-                    >
-                        {simulationState.showSolution ? (
-                            <EyeOff className="h-4 w-4" />
+        <>
+            <Panel className="overflow-hidden lg:col-start-2 lg:row-span-2 lg:row-start-1">
+                <PanelHeader
+                    title={
+                        isComplete ? (
+                            <span className="text-primary flex items-center gap-1.5">
+                                <Check className="size-4" strokeWidth={2.5} />
+                                <span className="tabular">
+                                    {moves}회 만에 완료
+                                </span>
+                            </span>
                         ) : (
-                            <Eye className="h-4 w-4" />
-                        )}
-                        {simulationState.showSolution ? '숨기기' : '정답 보기'}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={initializeSimulation}
-                        className="gap-2"
-                    >
-                        <RefreshCw className="h-4 w-4" />새 게임
-                    </Button>
-                </div>
-            </HeadedCard.Header>
-
-            <HeadedCard.Content className="space-y-6">
-                {simulationState.isComplete && (
-                    <Card className="border-emerald-200/70 bg-emerald-50/70 p-4 text-center shadow-sm dark:border-emerald-500/40 dark:bg-emerald-900/40">
-                        <div className="flex flex-col items-center gap-2">
-                            <div className="flex items-center gap-2">
-                                <PartyPopper className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                                <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-100">
-                                    완료!
-                                </h3>
-                            </div>
-                            <p className="text-sm text-emerald-700 dark:text-emerald-200">
-                                {simulationState.moves}번 클릭으로 모든
-                                오브젝트를 찾았습니다
-                            </p>
-                        </div>
-                    </Card>
-                )}
-
-                <div className="grid gap-2 sm:grid-cols-3">
-                    {currentCaseOption.objects.map((obj, index) => {
-                        const foundObjects =
-                            simulationState.hiddenObjects.filter(
-                                (hiddenObj) =>
-                                    hiddenObj.objectIndex === index &&
-                                    hiddenObj.found
-                            );
-
-                        return (
-                            <div
-                                key={index}
-                                className="border-border/40 bg-background/70 flex items-center gap-2 rounded-lg border p-2 shadow-sm"
+                            <span className="flex items-baseline gap-1.5">
+                                <span className="text-muted-foreground font-medium">
+                                    시도
+                                </span>
+                                <span className="tabular">{moves}</span>
+                            </span>
+                        )
+                    }
+                    aside={
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={toggleSolution}
+                                aria-pressed={showSolution}
+                                className={cn(
+                                    showSolution && 'text-foreground bg-accent'
+                                )}
                             >
-                                <div className="text-primary bg-primary/15 flex h-6 w-6 items-center justify-center rounded-md text-xs font-semibold">
-                                    {index + 1}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-medium">
-                                        {obj.w}×{obj.h} 크기
-                                    </p>
-                                </div>
-                                <Badge
-                                    variant="secondary"
-                                    className="rounded-full px-3 py-0.5 text-xs"
-                                >
-                                    {foundObjects.length}/{obj.count}
-                                </Badge>
-                            </div>
-                        );
-                    })}
-                </div>
+                                {showSolution ? (
+                                    <EyeOff className="size-3.5" />
+                                ) : (
+                                    <Eye className="size-3.5" />
+                                )}
+                                정답
+                            </Button>
+                            <Button
+                                variant={isComplete ? 'default' : 'ghost'}
+                                size="xs"
+                                onClick={initializeSimulation}
+                            >
+                                <RefreshCw className="size-3.5" />새 게임
+                            </Button>
+                        </>
+                    }
+                />
 
-                <div className="overflow-x-auto">
-                    <div
-                        className="border-border/70 bg-background/95 dark:bg-background/25 mx-auto grid w-fit gap-1 rounded-xl border p-3 shadow-md sm:gap-1.5 dark:border-white/12"
-                        style={{
-                            gridTemplateColumns: `repeat(${GRID_WIDTH}, minmax(32px, 48px))`,
-                            gridTemplateRows: `repeat(${GRID_HEIGHT}, minmax(32px, 48px))`,
-                        }}
-                    >
-                        {Array.from({ length: GRID_HEIGHT }, (_, y) =>
-                            Array.from({ length: GRID_WIDTH }, (_, x) => (
-                                <div
-                                    key={`${x}-${y}`}
-                                    onClick={() => handleCellClick(x, y)}
-                                    className={getCellClassName(x, y)}
-                                    style={{
-                                        minHeight: '32px',
-                                        minWidth: '32px',
-                                        fontSize: '13px',
-                                        fontWeight: '600',
-                                        ...getCellStyles(x, y),
-                                    }}
-                                >
-                                    {renderCellContent(x, y)}
-                                </div>
-                            ))
-                        )}
+                <div className="px-3 pt-4 pb-5 sm:px-6 sm:pt-6 sm:pb-6">
+                    <div className="mx-auto max-w-[620px]">
+                        <Board>
+                            {Array.from({ length: GRID_HEIGHT }, (_, y) =>
+                                Array.from({ length: GRID_WIDTH }, (_, x) => {
+                                    const revealed = includes(
+                                        revealedCells,
+                                        x,
+                                        y
+                                    );
+                                    return (
+                                        <button
+                                            key={`${x}-${y}`}
+                                            type="button"
+                                            aria-label={cellName(x, y)}
+                                            disabled={revealed || isComplete}
+                                            onClick={() =>
+                                                handleCellClick(x, y)
+                                            }
+                                            className={cn(
+                                                'aspect-square min-w-0 rounded-[5px] outline-none',
+                                                'transition-[background-color,box-shadow] duration-150',
+                                                'focus-visible:ring-primary focus-visible:z-30 focus-visible:ring-2',
+                                                revealed
+                                                    ? 'hatched shadow-[inset_0_0_0_1px_var(--border)]'
+                                                    : 'enabled:hover:bg-primary-soft cursor-pointer bg-[var(--cell)] shadow-[inset_0_0_0_1px_var(--border)] enabled:hover:shadow-[inset_0_0_0_1px_var(--primary)] disabled:cursor-default'
+                                            )}
+                                            style={gridArea(x, y)}
+                                        />
+                                    );
+                                })
+                            )}
+
+                            {hiddenObjects.map((obj) =>
+                                obj.found ? (
+                                    <ObjectBlock
+                                        key={obj.id}
+                                        x={obj.startX}
+                                        y={obj.startY}
+                                        width={obj.width}
+                                        height={obj.height}
+                                        color={
+                                            objectTypeColors[obj.objectIndex]
+                                        }
+                                        label={obj.objectIndex + 1}
+                                        className="animate-in fade-in-0 zoom-in-[0.97] duration-200"
+                                    />
+                                ) : showSolution ? (
+                                    <div
+                                        key={obj.id}
+                                        aria-hidden
+                                        className="pointer-events-none z-10 rounded-[5px] border-2 border-dashed border-[var(--obj-fg)] p-1.5 text-[11px] leading-none font-semibold text-[var(--obj-fg)] dark:border-[var(--obj-bg-dark)] dark:text-[var(--obj-fg-dark)]"
+                                        style={{
+                                            ...gridArea(
+                                                obj.startX,
+                                                obj.startY,
+                                                obj.width,
+                                                obj.height
+                                            ),
+                                            ...objectColorVars(
+                                                objectTypeColors[
+                                                    obj.objectIndex
+                                                ]
+                                            ),
+                                        }}
+                                    >
+                                        {obj.objectIndex + 1}
+                                    </div>
+                                ) : null
+                            )}
+                        </Board>
                     </div>
                 </div>
-            </HeadedCard.Content>
-        </HeadedCard>
+            </Panel>
+
+            <Panel className="lg:col-start-1 lg:row-start-2">
+                <PanelHeader title="오브젝트" />
+                <PanelBody className="py-2">
+                    <ul className="grid">
+                        {currentCaseOption.objects.map((obj, index) => {
+                            const found = hiddenObjects.filter(
+                                (hidden) =>
+                                    hidden.objectIndex === index && hidden.found
+                            ).length;
+                            const total = hiddenObjects.filter(
+                                (hidden) => hidden.objectIndex === index
+                            ).length;
+                            const done = total > 0 && found === total;
+
+                            return (
+                                <li
+                                    key={index}
+                                    className="flex items-center gap-3 py-2"
+                                >
+                                    <span
+                                        className={cn(
+                                            objectColorClass,
+                                            'tabular flex size-6 shrink-0 items-center justify-center rounded-[5px] text-[11px] font-semibold'
+                                        )}
+                                        style={objectColorVars(
+                                            objectTypeColors[index]
+                                        )}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    <span className="text-muted-foreground flex w-9 shrink-0 justify-center">
+                                        <ShapeGlyph w={obj.w} h={obj.h} />
+                                    </span>
+                                    <span className="tabular text-[13px] font-medium">
+                                        {obj.w}×{obj.h}
+                                    </span>
+                                    <span className="ml-auto flex items-center gap-2.5">
+                                        <span className="flex gap-[3px]">
+                                            {Array.from(
+                                                { length: total },
+                                                (_, i) => (
+                                                    <span
+                                                        key={i}
+                                                        className={cn(
+                                                            'h-3 w-1 rounded-full transition-colors',
+                                                            i < found
+                                                                ? 'bg-primary'
+                                                                : 'bg-border-strong'
+                                                        )}
+                                                    />
+                                                )
+                                            )}
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                'tabular w-8 text-right text-xs',
+                                                done
+                                                    ? 'text-primary font-medium'
+                                                    : 'text-muted-foreground'
+                                            )}
+                                        >
+                                            {found}/{total}
+                                        </span>
+                                    </span>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </PanelBody>
+            </Panel>
+        </>
     );
 };

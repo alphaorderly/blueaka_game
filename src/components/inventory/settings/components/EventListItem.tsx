@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
-
-import { Badge } from '@/components/ui/badge';
+import { Copy, Download, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import {
+import type {
     EventData,
     InventoryObject,
 } from '@/types/inventory-management/inventory';
+import { ShapeGlyph } from '@/components/inventory/board/Board';
 
 interface EventListItemProps {
     event: EventData;
-    selectedEvent: string;
     onUpdateEvent: (eventId: string, updates: Partial<EventData>) => void;
+    onExportFile: (eventId: string) => void;
+    onCopy: (eventId: string) => void;
+    onDelete: (eventId: string) => void;
     onAddCase: (eventId: string) => void;
     onRemoveCase: (eventId: string, caseId: string) => void;
     onUpdateCase: (
@@ -37,10 +36,18 @@ interface EventListItemProps {
     ) => void;
 }
 
+const OBJECT_FIELDS = [
+    { key: 'w', label: '너비' },
+    { key: 'h', label: '높이' },
+    { key: 'totalCount', label: '개수' },
+] as const;
+
 export const EventListItem: React.FC<EventListItemProps> = ({
     event,
-    selectedEvent,
     onUpdateEvent,
+    onExportFile,
+    onCopy,
+    onDelete,
     onAddCase,
     onRemoveCase,
     onUpdateCase,
@@ -53,24 +60,16 @@ export const EventListItem: React.FC<EventListItemProps> = ({
         event.description || ''
     );
 
-    const isSelected = selectedEvent === event.id;
-
-    const handleUpdateEventName = (newName: string) => {
-        setEventName(newName);
-        if (newName.trim()) {
-            onUpdateEvent(event.id, { name: newName.trim() });
+    const commitName = (value: string) => {
+        if (value.trim()) {
+            onUpdateEvent(event.id, { name: value.trim() });
+        } else {
+            setEventName(event.name);
         }
     };
 
-    const handleUpdateEventDescription = (newDescription: string) => {
-        setEventDescription(newDescription);
-        onUpdateEvent(event.id, {
-            description: newDescription.trim() || undefined,
-        });
-    };
-
-    const handleCaseLabelChange = (caseId: string, newLabel: string) => {
-        onUpdateCase(event.id, caseId, { label: newLabel });
+    const commitDescription = (value: string) => {
+        onUpdateEvent(event.id, { description: value.trim() || undefined });
     };
 
     const handleObjectChange = (
@@ -85,283 +84,234 @@ export const EventListItem: React.FC<EventListItemProps> = ({
     };
 
     return (
-        <div className="space-y-4 px-4 pt-2">
-            {/* Event Info */}
-            <div
-                className={cn(
-                    'space-y-4 rounded-lg transition-colors',
-                    isSelected
-                        ? 'bg-accent/30 dark:bg-accent/10'
-                        : 'bg-muted/30 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
-                )}
-            >
-                <div className="space-y-2">
-                    <Label
-                        htmlFor={`name-${event.id}`}
-                        className="text-muted-foreground text-sm font-medium"
-                    >
-                        이벤트 이름
-                    </Label>
-                    <Input
-                        id={`name-${event.id}`}
-                        value={eventName}
-                        onChange={(e) => setEventName(e.target.value)}
-                        onBlur={(e) => handleUpdateEventName(e.target.value)}
-                        className="text-sm"
-                        placeholder="이벤트 이름을 입력하세요"
-                    />
+        <div className="space-y-6 p-4 sm:p-5">
+            <div className="space-y-3">
+                <div className="flex items-end gap-2">
+                    <div className="grid min-w-0 flex-1 gap-1.5">
+                        <Label htmlFor={`name-${event.id}`}>이름</Label>
+                        <Input
+                            id={`name-${event.id}`}
+                            value={eventName}
+                            onChange={(e) => setEventName(e.target.value)}
+                            onBlur={(e) => commitName(e.target.value)}
+                            className="font-medium"
+                        />
+                    </div>
+                    <div className="flex gap-0.5 pb-0.5">
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onExportFile(event.id)}
+                            aria-label="파일로 내보내기"
+                            title="파일로 내보내기"
+                        >
+                            <Download />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onCopy(event.id)}
+                            aria-label="JSON 복사"
+                            title="JSON 복사"
+                        >
+                            <Copy />
+                        </Button>
+                        <Button
+                            variant="ghost-danger"
+                            size="icon-sm"
+                            onClick={() => onDelete(event.id)}
+                            aria-label="삭제"
+                            title="삭제"
+                        >
+                            <Trash2 />
+                        </Button>
+                    </div>
                 </div>
-
-                <div className="space-y-2">
-                    <Label
-                        htmlFor={`desc-${event.id}`}
-                        className="text-muted-foreground text-sm font-medium"
-                    >
-                        설명 (선택사항)
-                    </Label>
+                <div className="grid gap-1.5">
+                    <Label htmlFor={`desc-${event.id}`}>메모</Label>
                     <Input
                         id={`desc-${event.id}`}
                         value={eventDescription}
                         onChange={(e) => setEventDescription(e.target.value)}
-                        onBlur={(e) =>
-                            handleUpdateEventDescription(e.target.value)
-                        }
-                        className="text-sm"
-                        placeholder="이벤트에 대한 설명을 입력하세요"
+                        onBlur={(e) => commitDescription(e.target.value)}
                     />
                 </div>
             </div>
 
-            {/* Cases List */}
-            <div className="space-y-3">
-                <div className="flex items-center justify-between px-4">
-                    <h3 className="text-foreground text-sm font-medium">
-                        케이스 목록
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-[13px] font-semibold">
+                        회차
+                        <span className="text-faint tabular ml-1.5 font-normal">
+                            {event.caseOptions.length}
+                        </span>
                     </h3>
                     <Button
-                        onClick={() => onAddCase(event.id)}
                         variant="outline"
-                        size="sm"
-                        className="text-sm"
+                        size="xs"
+                        onClick={() => onAddCase(event.id)}
                     >
-                        <Plus className="mr-1 h-4 w-4" />
-                        케이스 추가
+                        <Plus className="size-3.5" />
+                        회차
                     </Button>
                 </div>
 
                 {event.caseOptions.length === 0 ? (
-                    <Card className="border-border/60 dark:border-border/40 border-dashed">
-                        <CardContent className="space-y-1 px-4 py-6 text-center">
-                            <p className="text-muted-foreground text-sm">
-                                케이스가 없습니다
-                            </p>
-                            <p className="text-muted-foreground/80 text-xs">
-                                위 버튼을 클릭해서 케이스를 추가해보세요
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <p className="text-faint rounded-lg border border-dashed py-8 text-center text-xs">
+                        회차 없음
+                    </p>
                 ) : (
                     <div className="space-y-3">
                         {event.caseOptions.map((caseOption) => (
-                            <Card
+                            <div
                                 key={caseOption.value}
-                                className="border-border/60 dark:border-border/40 py-2"
+                                className="overflow-hidden rounded-lg border"
                             >
-                                <CardContent className="space-y-4 px-4 py-4">
-                                    {/* Case Header */}
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1">
-                                            <Input
-                                                value={caseOption.label}
-                                                onChange={(e) =>
-                                                    handleCaseLabelChange(
-                                                        caseOption.value,
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="font-medium"
-                                                placeholder="케이스 이름"
-                                            />
-                                        </div>
-                                        <Button
-                                            onClick={() =>
-                                                onRemoveCase(
-                                                    event.id,
-                                                    caseOption.value
-                                                )
-                                            }
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                                            title="케이스 삭제"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                <div className="bg-sunken flex items-center gap-2 border-b px-2 py-1.5">
+                                    <Input
+                                        value={caseOption.label}
+                                        onChange={(e) =>
+                                            onUpdateCase(
+                                                event.id,
+                                                caseOption.value,
+                                                { label: e.target.value }
+                                            )
+                                        }
+                                        aria-label="회차 이름"
+                                        placeholder="회차 이름"
+                                        className="focus-visible:bg-surface h-8 border-transparent bg-transparent font-medium hover:border-transparent"
+                                    />
+                                    <Button
+                                        variant="ghost-danger"
+                                        size="icon-xs"
+                                        onClick={() =>
+                                            onRemoveCase(
+                                                event.id,
+                                                caseOption.value
+                                            )
+                                        }
+                                        aria-label="회차 삭제"
+                                        title="회차 삭제"
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                    </Button>
+                                </div>
 
-                                    {/* Objects */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-muted-foreground text-sm font-medium">
-                                                오브젝트 (
-                                                {caseOption.objects.length}개)
-                                            </Label>
-                                            <Button
-                                                onClick={() =>
-                                                    onAddObject(
-                                                        event.id,
-                                                        caseOption.value
-                                                    )
-                                                }
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 text-xs"
-                                            >
-                                                <Plus className="mr-1 h-3 w-3" />
-                                                오브젝트 추가
-                                            </Button>
-                                        </div>
-
-                                        {caseOption.objects.length === 0 ? (
-                                            <div className="border-border/60 dark:border-border/40 rounded-lg border-2 border-dashed p-4 text-center">
-                                                <p className="text-muted-foreground/80 text-sm">
-                                                    오브젝트가 없습니다
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {caseOption.objects.map(
-                                                    (obj, objIndex) => (
-                                                        <div
-                                                            key={objIndex}
-                                                            className="border-border/60 bg-muted/30 dark:border-border/40 dark:bg-muted/15 rounded-lg border p-3"
-                                                        >
-                                                            <div className="flex items-start gap-3">
-                                                                <Badge
-                                                                    variant="outline"
-                                                                    className="bg-background/80 text-muted-foreground self-center text-xs"
-                                                                >
-                                                                    #
-                                                                    {objIndex +
-                                                                        1}
-                                                                </Badge>
-
-                                                                <div className="grid flex-1 grid-cols-3 gap-3">
-                                                                    <div className="space-y-1">
-                                                                        <Label className="text-muted-foreground text-xs">
-                                                                            너비
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min="1"
-                                                                            value={
-                                                                                obj.w
-                                                                            }
-                                                                            onChange={(
-                                                                                e
-                                                                            ) =>
-                                                                                handleObjectChange(
-                                                                                    caseOption.value,
-                                                                                    objIndex,
-                                                                                    'w',
-                                                                                    parseInt(
-                                                                                        e
-                                                                                            .target
-                                                                                            .value,
-                                                                                        10
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                            className="h-8 text-center text-sm"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="space-y-1">
-                                                                        <Label className="text-muted-foreground text-xs">
-                                                                            높이
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min="1"
-                                                                            value={
-                                                                                obj.h
-                                                                            }
-                                                                            onChange={(
-                                                                                e
-                                                                            ) =>
-                                                                                handleObjectChange(
-                                                                                    caseOption.value,
-                                                                                    objIndex,
-                                                                                    'h',
-                                                                                    parseInt(
-                                                                                        e
-                                                                                            .target
-                                                                                            .value,
-                                                                                        10
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                            className="h-8 text-center text-sm"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="space-y-1">
-                                                                        <Label className="text-muted-foreground text-xs">
-                                                                            총
-                                                                            개수
-                                                                        </Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min="1"
-                                                                            value={
-                                                                                obj.totalCount
-                                                                            }
-                                                                            onChange={(
-                                                                                e
-                                                                            ) =>
-                                                                                handleObjectChange(
-                                                                                    caseOption.value,
-                                                                                    objIndex,
-                                                                                    'totalCount',
-                                                                                    parseInt(
-                                                                                        e
-                                                                                            .target
-                                                                                            .value,
-                                                                                        10
-                                                                                    )
-                                                                                )
-                                                                            }
-                                                                            className="h-8 text-center text-sm"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                <Button
-                                                                    onClick={() =>
-                                                                        onRemoveObject(
-                                                                            event.id,
+                                <table className="w-full text-[13px]">
+                                    <thead>
+                                        <tr className="text-faint text-left text-[11px]">
+                                            <th className="w-10 py-2 pl-3 font-medium">
+                                                #
+                                            </th>
+                                            <th className="w-12 font-medium" />
+                                            {OBJECT_FIELDS.map((field) => (
+                                                <th
+                                                    key={field.key}
+                                                    className="px-1 font-medium"
+                                                >
+                                                    {field.label}
+                                                </th>
+                                            ))}
+                                            <th className="w-10" />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {caseOption.objects.map(
+                                            (obj, objIndex) => (
+                                                <tr
+                                                    key={objIndex}
+                                                    className="border-t"
+                                                >
+                                                    <td className="text-muted-foreground tabular py-1.5 pl-3 text-xs">
+                                                        {objIndex + 1}
+                                                    </td>
+                                                    <td className="text-muted-foreground">
+                                                        <ShapeGlyph
+                                                            w={Math.min(
+                                                                obj.w,
+                                                                6
+                                                            )}
+                                                            h={Math.min(
+                                                                obj.h,
+                                                                6
+                                                            )}
+                                                        />
+                                                    </td>
+                                                    {OBJECT_FIELDS.map(
+                                                        (field) => (
+                                                            <td
+                                                                key={field.key}
+                                                                className="px-1 py-1.5"
+                                                            >
+                                                                <Input
+                                                                    type="number"
+                                                                    inputMode="numeric"
+                                                                    min={1}
+                                                                    value={
+                                                                        obj[
+                                                                            field
+                                                                                .key
+                                                                        ]
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        handleObjectChange(
                                                                             caseOption.value,
-                                                                            objIndex
+                                                                            objIndex,
+                                                                            field.key,
+                                                                            parseInt(
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                                10
+                                                                            )
                                                                         )
                                                                     }
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="text-destructive hover:bg-destructive/15 h-8 w-8 self-end p-0"
-                                                                    title="오브젝트 삭제"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
+                                                                    aria-label={`${objIndex + 1}번 ${field.label}`}
+                                                                    className="tabular h-8 max-w-20 text-center"
+                                                                />
+                                                            </td>
+                                                        )
+                                                    )}
+                                                    <td className="pr-2 text-right">
+                                                        <Button
+                                                            variant="ghost-danger"
+                                                            size="icon-xs"
+                                                            onClick={() =>
+                                                                onRemoveObject(
+                                                                    event.id,
+                                                                    caseOption.value,
+                                                                    objIndex
+                                                                )
+                                                            }
+                                                            aria-label={`${objIndex + 1}번 삭제`}
+                                                            title="삭제"
+                                                        >
+                                                            <X className="size-3.5" />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            )
                                         )}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </tbody>
+                                </table>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onAddObject(event.id, caseOption.value)
+                                    }
+                                    className="text-muted-foreground hover:bg-accent hover:text-foreground flex w-full cursor-pointer items-center gap-1.5 border-t px-3 py-2 text-xs transition-colors"
+                                >
+                                    <Plus className="size-3.5" />
+                                    오브젝트
+                                </button>
+                            </div>
                         ))}
                     </div>
                 )}
-            </div>
+            </section>
         </div>
     );
 };

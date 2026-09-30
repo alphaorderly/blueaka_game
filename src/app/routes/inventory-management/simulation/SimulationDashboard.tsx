@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { SimpleEventSelection } from '@/components/inventory/forms/SimpleEventSelection';
 import {
     AVAILABLE_EVENTS,
     getDefaultEvent,
 } from '@/consts/inventory-management/events';
 import type { EventData } from '@/types/inventory-management/inventory';
-import { Card, CardContent } from '@/components/ui/card';
+import { Panel, PanelBody } from '@/components/ui/panel';
+import { EventPicker } from '@/components/inventory/forms/EventPicker';
 import { InventorySimulation } from '@/components/inventory';
 
 const SimulationDashboard = () => {
@@ -29,17 +29,19 @@ const SimulationDashboard = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <Card className="border-border/60 bg-card/95 supports-[backdrop-filter]:bg-card/80 border shadow-sm backdrop-blur-sm">
-                <CardContent className="space-y-6">
-                    <SimpleEventSelection
-                        selectedEventId={selectedEvent.id}
+        <div className="grid items-start gap-4 lg:grid-cols-[296px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:gap-y-5">
+            <Panel className="lg:col-start-1 lg:row-start-1">
+                <PanelBody>
+                    <EventPicker
+                        events={AVAILABLE_EVENTS}
+                        cases={selectedEvent.caseOptions}
+                        selectedEvent={selectedEvent.id}
                         selectedCase={selectedCase}
                         onEventChange={handleEventChange}
                         onCaseChange={setSelectedCase}
                     />
-                </CardContent>
-            </Card>
+                </PanelBody>
+            </Panel>
             <InventorySimulation
                 selectedEvent={selectedEvent}
                 selectedCase={selectedCase}

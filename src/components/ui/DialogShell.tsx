@@ -82,23 +82,22 @@ export const DialogShell: React.FC<DialogShellProps> = ({
             ) : null}
             <DialogContent
                 className={cn(
-                    'bg-background/95 flex max-h-[90vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden p-0',
+                    'flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl',
                     contentClassName
                 )}
                 showCloseButton={false}
+                aria-describedby={undefined}
             >
                 {(title || showCloseButton || headerActions) && (
                     <DialogHeader
                         className={cn(
-                            'border-border/60 dark:border-border/40 flex flex-row items-center justify-between border-b px-4 py-2',
+                            'flex h-12 shrink-0 flex-row items-center justify-between border-b pr-2 pl-4',
                             headerClassName
                         )}
                     >
                         {title ? (
                             typeof title === 'string' ? (
-                                <DialogTitle className="text-foreground text-xl font-semibold">
-                                    {title}
-                                </DialogTitle>
+                                <DialogTitle>{title}</DialogTitle>
                             ) : (
                                 title
                             )
@@ -112,11 +111,11 @@ export const DialogShell: React.FC<DialogShellProps> = ({
                                     <DialogClose asChild>
                                         <Button
                                             variant="ghost"
-                                            size="icon"
+                                            size="icon-sm"
                                             type="button"
-                                            aria-label="Close dialog"
+                                            aria-label="닫기"
                                         >
-                                            <X className="size-6" />
+                                            <X />
                                         </Button>
                                     </DialogClose>
                                 )}
@@ -125,16 +124,18 @@ export const DialogShell: React.FC<DialogShellProps> = ({
                     </DialogHeader>
                 )}
 
-                <div className={cn('flex-1 overflow-y-auto', bodyClassName)}>
+                <div
+                    className={cn(
+                        'min-h-0 flex-1 overflow-y-auto',
+                        bodyClassName
+                    )}
+                >
                     {renderContent(content)}
                 </div>
 
                 {footer ? (
                     <DialogFooter
-                        className={cn(
-                            'border-border/60 dark:border-border/40 border-t p-4',
-                            footerClassName
-                        )}
+                        className={cn('border-t p-4', footerClassName)}
                     >
                         {renderContent(footer)}
                     </DialogFooter>

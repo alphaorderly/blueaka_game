@@ -1,114 +1,78 @@
-import { RotateCcw, X } from 'lucide-react';
+import { RotateCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { InventoryObject } from '@/types/inventory-management/inventory';
+import type { InventoryObject } from '@/types/inventory-management/inventory';
+import type { ObjectTypeColor } from '@/utils/inventory/colorUtils';
+import { cn } from '@/lib/utils';
+import { ShapeGlyph } from './board/Board';
+import { objectColorClass, objectColorVars } from './board/boardUtils';
 
 interface InventoryPlacementIndicatorProps {
     selectedObjectIndex: number;
     currentObjects: InventoryObject[];
+    color?: ObjectTypeColor;
     placementOrientation: 'horizontal' | 'vertical';
     onToggleOrientation: () => void;
     onCancelPlacement: () => void;
 }
 
+const Kbd = ({ children }: { children: string }) => (
+    <kbd className="border-primary-foreground/30 text-primary-foreground/80 ml-0.5 hidden rounded-[3px] border px-1 font-sans text-[10px] leading-4 sm:inline">
+        {children}
+    </kbd>
+);
+
 export const InventoryPlacementIndicator = ({
     selectedObjectIndex,
     currentObjects,
+    color,
     placementOrientation,
     onToggleOrientation,
     onCancelPlacement,
 }: InventoryPlacementIndicatorProps) => {
-    if (selectedObjectIndex < 0 || !currentObjects[selectedObjectIndex]) {
-        return null;
-    }
+    const current = currentObjects[selectedObjectIndex];
+    if (!current) return null;
 
-    const currentObject = currentObjects[selectedObjectIndex];
+    const [w, h] =
+        placementOrientation === 'horizontal'
+            ? [current.w, current.h]
+            : [current.h, current.w];
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded text-xs font-semibold">
-                        {selectedObjectIndex + 1}
-                    </div>
-                    <div>
-                        <div className="text-foreground text-xs font-medium">
-                            배치 모드
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                            {placementOrientation === 'horizontal'
-                                ? `${currentObject.w}×${currentObject.h}`
-                                : `${currentObject.h}×${currentObject.w}`}
-                        </div>
-                    </div>
-                </div>
+        <div className="bg-primary text-primary-foreground flex h-11 items-center gap-3 rounded-t-xl px-3 sm:px-4">
+            <span
+                className={cn(
+                    objectColorClass,
+                    'tabular flex size-6 shrink-0 items-center justify-center rounded-[5px] text-[11px] font-semibold'
+                )}
+                style={objectColorVars(color)}
+            >
+                {selectedObjectIndex + 1}
+            </span>
+            <ShapeGlyph w={w} h={h} className="opacity-90" />
+            <span className="tabular text-[13px] font-semibold">
+                {w}×{h}
+            </span>
 
-                <div className="border-primary/20 bg-primary/10 rounded border p-1">
-                    {placementOrientation === 'horizontal' ? (
-                        <div className="flex flex-col gap-0.5">
-                            {Array.from(
-                                { length: currentObject.h },
-                                (_, rowIndex) => (
-                                    <div
-                                        key={rowIndex}
-                                        className="flex gap-0.5"
-                                    >
-                                        {Array.from(
-                                            { length: currentObject.w },
-                                            (_, colIndex) => (
-                                                <div
-                                                    key={colIndex}
-                                                    className="bg-primary h-1.5 w-1.5 rounded-sm"
-                                                />
-                                            )
-                                        )}
-                                    </div>
-                                )
-                            )}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-0.5">
-                            {Array.from(
-                                { length: currentObject.w },
-                                (_, rowIndex) => (
-                                    <div
-                                        key={rowIndex}
-                                        className="flex gap-0.5"
-                                    >
-                                        {Array.from(
-                                            { length: currentObject.h },
-                                            (_, colIndex) => (
-                                                <div
-                                                    key={colIndex}
-                                                    className="bg-primary h-1.5 w-1.5 rounded-sm"
-                                                />
-                                            )
-                                        )}
-                                    </div>
-                                )
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex gap-2">
+            <div className="ml-auto flex items-center gap-1">
                 <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={onToggleOrientation}
-                    className="h-8 flex-1 gap-1 text-xs"
+                    className="text-primary-foreground hover:text-primary-foreground hover:bg-white/15 dark:hover:bg-black/10"
                 >
-                    <RotateCcw className="h-3 w-3" />
+                    <RotateCw />
                     회전
+                    <Kbd>R</Kbd>
                 </Button>
                 <Button
                     size="sm"
-                    variant="secondary"
+                    variant="ghost"
                     onClick={onCancelPlacement}
-                    className="h-8 flex-1 gap-1 text-xs"
+                    className="text-primary-foreground hover:text-primary-foreground hover:bg-white/15 dark:hover:bg-black/10"
                 >
-                    <X className="h-3 w-3" />
+                    <X />
                     취소
+                    <Kbd>Esc</Kbd>
                 </Button>
             </div>
         </div>
